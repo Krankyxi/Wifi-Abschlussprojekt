@@ -1,7 +1,23 @@
+#include "Spiel.h"
+#include "Dialog.h"
+
 #include <iostream>
+
+void test()
+{
+    CSpiel spiel;
+    CDialog dialog(&spiel);
+
+    dialog.menue();
+ 
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    test();
+    
+    return 0;
 }
+
+
 

@@ -127,7 +127,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Dialog.cpp" />
+    <ClCompile Include="Historie.cpp" />
     <ClCompile Include="KNIFFEL.cpp" />
+    <ClCompile Include="Spiel.cpp" />
+    <ClCompile Include="Spieler.cpp" />
+    <ClCompile Include="Würfel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Dialog.h" />
+    <ClInclude Include="Historie.h" />
+    <ClInclude Include="Spiel.h" />
+    <ClInclude Include="Spieler.h" />
+    <ClInclude Include="Würfel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
