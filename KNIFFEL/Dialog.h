@@ -6,6 +6,8 @@ class CDialog
 {
 private:
 	CSpiel* pdialog;
+	std::string zerlegeStringPositionsAuswahl(std::string& eingabe, int& index);
+	bool checkStringPositionsAuswahl(std::string& eingabe);
 public:
 	CDialog() = default;
 	CDialog(CSpiel* pdialog) : pdialog(pdialog)
@@ -17,12 +19,11 @@ public:
 	void spielerLoeschen();
 	void spielerLaden();
 	void alleSpielerAusgeben() const;
-	void spielStartenDialog();
-	void einspielerTabelle(int& x);
-	void zweispielerTabelle(int& x);
-
+	void spielenDialog();
+	void spielerTabellen(int& x);
 	void mehrspielerMenue();
+	bool wuerfelAuswahl(int& zaehler);
+	void wuerfelMenue(int& zaehler, std::vector<CSpieler*> meineKopie);
 	
-
 };
 

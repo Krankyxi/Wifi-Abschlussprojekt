@@ -4,15 +4,20 @@
 class CWuerfel
 {
 private:
-	int wuerfel[6]{ 1,2,3,4,5,6 };
-
-	int maxAnzahlZahlen = 6;
 	int gewuerfelt = 0;
+	int wuerfel = 6;
 public:
 	int wuerfeln();
+
 	int getWuerfel() const
 	{
-		return wuerfel[maxAnzahlZahlen];
+		return wuerfel;
 	}
+	int getGeWuerfelt() const
+	{
+		return gewuerfelt;
+	}
+
+	friend std::ostream& operator<<(std::ostream& out, const CWuerfel& wurf);
 };
 
