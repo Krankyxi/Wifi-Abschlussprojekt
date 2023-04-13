@@ -11,14 +11,13 @@ private:
 	std::vector<CWuerfel*> wuerfel;
 	std::vector<CSpieler*> spieler;		// Zugriff dann auf std::map
 	
-	int maxAnzahlWuerfel = 5;
+	size_t maxAnzahlWuerfel = 5;
 	int maxAnzahlSpieler = 4;
 	int aktZuege = 1;
 
 	std::string aktuellesDatum;
 	std::string aktuelleUhrzeit;
 
-	void wuerfelSort();
 public:
 	CSpiel()
 	{
@@ -34,10 +33,14 @@ public:
 	bool alleSpielerLoeschen();
 	void aktDatumUndUhrzeit();
 	void aktDatumUndUhrzeitAusgeben() const;
-	void spielerWuerfeln();
-	void spielerWuerfeln(int& position);
+	void spielerWuerfeln();							
+	void spielerWuerfeln(size_t& position);			
 	void wuerfelAusgeben() const;
-	bool aktuellerSpielzug(int& index);
+	bool aktuellerSpielzug(size_t& index);
+	std::vector<std::pair<std::string, int>> kombinationen();
+	void wuerfelSort();
+	void resetSpielzug();
+	std::string getBewertungText(int& zahl);
 
 	std::vector<CSpieler*> getSpieler() const
 	{
@@ -48,7 +51,7 @@ public:
 		return wuerfel;
 	}
 
-	int getMaxAnzahlWuerfel() const
+	size_t getMaxAnzahlWuerfel() const
 	{
 		return maxAnzahlWuerfel;
 	}
