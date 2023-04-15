@@ -306,6 +306,16 @@ void CDialog::spielenDialog()
 			{
 				return;
 			}
+			if (pdialog->getSpieler().at(zaehler)->getMaxEintrag() == pdialog->getSpieler().at(zaehler)->getCountEintrag())
+			{
+				cleanScreen;
+				spielerTabellen(zaehler);
+				std::cout << std::endl;
+				std::cout << "Gluckwunsch, " << pdialog->getSpieler().at(zaehler)->getSpielerName() << " du hast das Spiel zu Ende gespielt ;)" << std::endl;
+				std::cout << "Du hast das Spiel mit ( " << pdialog->getSpieler().at(zaehler)->getKombi().find(19)->second.second << " ) Punkten abgeschlossen! " << std::endl;
+				system("Pause");
+				return;
+			}
 		}
 	}
 }
@@ -459,20 +469,24 @@ void CDialog::kombinationsAuswahl(size_t& zaehler)
 {
 	std::string eingabe;
 	std::vector<std::pair<std::string, int>> kombination;
-	std::vector<std::pair<std::string, int>>::iterator it;
-	std::cout << std::endl;
-
-	kombination = pdialog->kombinationen();					// vector(pair) zurückgeliefert
+	std::vector<std::pair<std::string, int>> kombinationOhneEintrag;
 
 	for (;;)
 	{
+		kombination.clear();
+		kombination = pdialog->kombinationen();	
+
+		kombination = pdialog->getSpieler().at(zaehler)->pruefenEintragVorhanden(kombination);
+
 		int zaehlerPos = 1;
 
-		for (auto& iter : kombination)						// Auflistung der zu auswählenden Kombinationen		
-		{
+		std::cout << "---------------------------------" << std::endl;
+		for (auto& iter : kombination)											// Auflistung der zu auswählenden Kombinationen		
+		{			
 			std::cout << "[" << zaehlerPos << "] " << iter.first << std::endl;
-			++zaehlerPos;
+			++zaehlerPos;			
 		}
+		std::cout << "---------------------------------" << std::endl;
 		std::cout << std::endl << "Welche Kombination moechten Sie auswaehlen ?";
 		std::getline(std::cin, eingabe);
 
@@ -483,13 +497,47 @@ void CDialog::kombinationsAuswahl(size_t& zaehler)
 		else
 		{			
 			int index = stoi(eingabe) - 1;
-			kombination.at(0) = kombination.at(index);			// ausgewählte Position der obigen Auflistung, wird an die Stelle 0 gesetzt			
+			kombination.at(0) = kombination.at(index);							// ausgewählte Position der obigen Auflistung, wird an die Stelle 0 gesetzt			
 			
+			if (kombination.at(0).first == "STREICHEN")
+			{
+				int kombiIndex = 0;
+				do
+				{
+					kombiIndex = 0;
+					kombinationOhneEintrag = pdialog->getSpieler().at(zaehler)->kombinationenOhneEintrag();
+					std::cout << "---------------------------------" << std::endl;
+
+					for (auto& iter : kombinationOhneEintrag)
+					{
+						++kombiIndex;
+						std::cout << "[" << kombiIndex << "] " << iter.first << std::endl;
+					}
+
+					std::cout << "---------------------------------" << std::endl;
+					std::cout << "Welche Kombination moechten Sie streichen lassen";
+					std::getline(std::cin, eingabe);
+
+					if (!(isdigit(eingabe[0])) || stoi(eingabe) < 1 || stoi(eingabe) > kombiIndex)
+					{
+						std::cerr << "Falsche Eingabe - Bitte versuchen Sie es erneut!" << std::endl;
+					}
+					else
+					{
+						index = stoi(eingabe) - 1;
+						kombinationOhneEintrag.at(0) = kombinationOhneEintrag.at(index);
+						pdialog->getSpieler().at(zaehler)->kombinationOhneEintragStreichen(kombinationOhneEintrag);
+					}
+				} while (!(isdigit(eingabe[0])) || stoi(eingabe) < 1 || stoi(eingabe) > kombiIndex);
+			}
 			kombination.erase(kombination.begin() + 1, kombination.end());		// restliche Auflistung wird gelöscht	
 
-			pdialog->getSpieler().at(zaehler)->kombinationSpeichern(kombination);
-			//tabellenEintrag(kombination, zaehler);		
-			system("Pause");
+			if (kombination.at(0).second != 0)
+			{
+				pdialog->getSpieler().at(zaehler)->kombinationSpeichern(kombination);
+
+			}
+			pdialog->getSpieler().at(zaehler)->tabelleSpielerGesamt();
 			return;
 		}
 	}
@@ -542,13 +590,6 @@ bool CDialog::checkStringPositionsAuswahl(std::string& eingabe)
 	return false;
 }
 
-
-void CDialog::tabellenEintrag(std::vector<std::pair<std::string, int>> kombination, size_t& zaehler)
-{
-	
-}
-
-
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //								Spieler Tabellen
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -556,180 +597,360 @@ void CDialog::tabellenEintrag(std::vector<std::pair<std::string, int>> kombinati
 void CDialog::spielerTabellen(size_t& zaehlerValue)
 {
 	size_t zaehler = 0;
+	int breite = 3;
+	std::string puffer = "   ";
 
 	const std::vector<CSpieler*> meineKopie = pdialog->getSpieler();
 	
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << " Spieler " << (zaehler)+1 << ": " << pdialog->getSpieler().at(zaehler)->getSpielerName() << std::setw(30);
+		std::cout << " Spieler " << (zaehler)+1 << ": " << pdialog->getSpieler().at(zaehler)->getSpielerName() << std::setw(29);
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "#-------------------------------#  ";
+		std::cout << "#--------------------------------#  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| nur Einser             [" << std::cout.fill(' ');				// hier weitermachen
+		std::cout << "| nur Einser             [ ";				
 
-		if (pdialog->getSpieler().at(zaehlerValue)->getKombi().find(1)->second.second != -1)
+		if ((*iter)->getKombi().find(1)->second.second != -1)
 		{
-			std::cout << pdialog->getSpieler().at(zaehlerValue)->getKombi().find(1)->second.second;
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(1)->second.second;
 		}
-		std::cout << "] |  ";
-	}
-	std::cout << std::endl;
-
-	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
-	{
-		std::cout << "| nur Zweier             [" << std::cout.fill(' ');
-
-		if (pdialog->getSpieler().at(zaehlerValue)->getKombi().find(2)->second.second != -1)
+		else
 		{
-			std::cout << pdialog->getSpieler().at(zaehlerValue)->getKombi().find(2)->second.second;
+			std::cout << puffer;
 		}
-		std::cout << "] |  ";
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| nur Dreier             [    ] |  ";
+		std::cout << "| nur Zweier             [ ";
+
+		if ((*iter)->getKombi().find(2)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(2)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| nur Vierer             [    ] |  ";
+		std::cout << "| nur Dreier             [ ";
+
+		if ((*iter)->getKombi().find(3)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(3)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| nur Fuenfer            [    ] |  ";
+		std::cout << "| nur Vierer             [ ";
+
+		if ((*iter)->getKombi().find(4)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(4)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| nur Sechser            [    ] |  ";
+		std::cout << "| nur Fuenfer            [ ";
+
+		if ((*iter)->getKombi().find(5)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(5)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "|-------------------------------|  ";
+		std::cout << "| nur Sechser            [ ";
+
+		if ((*iter)->getKombi().find(6)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(6)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Gesamt                 [    ] |  ";
+		std::cout << "|--------------------------------|  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "|-------------------------------|  ";
+		std::cout << "| Gesamt                 [ ";
+
+		if ((*iter)->getKombi().find(7)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(7)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Bonus bei 63 oder mehr [    ] |  ";
+		std::cout << "|--------------------------------|  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Gesamt oberer Teil     [    ] |  ";
+		std::cout << "| Bonus bei 63 oder mehr [ ";
+
+		if ((*iter)->getKombi().find(8)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(8)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "|-------------------------------|  ";
+		std::cout << "| Gesamt oberer Teil     [ ";
+
+		if ((*iter)->getKombi().find(9)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(9)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Dreierparsch           [    ] |  ";
+		std::cout << "|--------------------------------|  ";
+	}
+	std::cout << std::endl;
+
+	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
+	{
+		std::cout << "| Dreierparsch           [ ";
+
+		if ((*iter)->getKombi().find(10)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(10)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 	
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Viererparsch           [    ] |  ";
+		std::cout << "| Viererparsch           [ ";
+
+		if ((*iter)->getKombi().find(11)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(11)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Full-House             [    ] |  ";
+		std::cout << "| Full House             [ ";
+
+		if ((*iter)->getKombi().find(12)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(12)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Kleine Strasse         [    ] |  ";
+		std::cout << "| Kleine Strasse         [ ";
+
+		if ((*iter)->getKombi().find(13)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(13)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Grosse Strasse         [    ] |  ";
+		std::cout << "| Grosse Strasse         [ ";
+
+		if ((*iter)->getKombi().find(14)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(14)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| KNIFFEL                [    ] |  ";
+		std::cout << "| KNIFFEL                [ ";
+
+		if ((*iter)->getKombi().find(15)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(15)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Chance                 [    ] |  ";
+		std::cout << "| Chance                 [ ";
+
+		if ((*iter)->getKombi().find(16)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(16)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Gesamt unterer Teil    [    ] |  ";
+		std::cout << "| Gesamt unterer Teil    [ ";
+
+		if ((*iter)->getKombi().find(17)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(17)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| Gesamt oberer  Teil    [    ] |  ";
+		std::cout << "| Gesamt oberer Teil     [ ";
+
+		if ((*iter)->getKombi().find(18)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(18)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "#-------------------------------#  ";
+		std::cout << "#--------------------------------#  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "#-------------------------------#  ";
+		std::cout << "#--------------------------------#  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "| ENDSUMME               [    ] |  ";
+		std::cout << "| ENDSUMME               [ ";
+
+		if ((*iter)->getKombi().find(19)->second.second != -1)
+		{
+			std::cout << std::setw(breite) << (*iter)->getKombi().find(19)->second.second;
+		}
+		else
+		{
+			std::cout << puffer;
+		}
+		std::cout << " ] |  ";
 	}
 	std::cout << std::endl;
 
 	for (auto iter = meineKopie.begin(); iter != meineKopie.end(); ++iter, ++zaehler)
 	{
-		std::cout << "#-------------------------------#  "; 
+		std::cout << "#--------------------------------#  "; 
 	}
 	std::cout << std::endl;
 }

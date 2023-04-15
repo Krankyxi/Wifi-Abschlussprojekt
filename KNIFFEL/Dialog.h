@@ -23,7 +23,6 @@ public:
 	bool wuerfelAuswahl(size_t& zaehler);
 	bool wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie);
 	void kombinationsAuswahl(size_t& zaehler);
-	void tabellenEintrag(std::vector<std::pair<std::string, int>> kombination, size_t& zaehler);
 	
 };
 

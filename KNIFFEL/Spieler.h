@@ -11,6 +11,8 @@ private:
 	std::string name;
 	int aktPunkteStand = 0;
 	int maxSpielzuege = 3;
+	int eintragCount = 0;
+	int eintragMax = 13;
 
 	std::map<int, std::pair<std::string, int>> kombi;	
 public:
@@ -55,8 +57,20 @@ public:
 	{
 		return kombi;
 	}
-
+	int getMaxEintrag() const
+	{
+		return eintragMax;
+	}
+	int getCountEintrag() const
+	{
+		return eintragCount;
+	}
+	
+	void kombinationOhneEintragStreichen(std::vector<std::pair<std::string, int>> kombination);
+	void tabelleSpielerGesamt();
 	void kombinationSpeichern(std::vector<std::pair<std::string, int>> kombination);
+	std::vector<std::pair<std::string, int>> pruefenEintragVorhanden(std::vector<std::pair<std::string, int>> kombination);
+	std::vector<std::pair<std::string, int>> kombinationenOhneEintrag();
 
 	friend std::ostream& operator<<(std::ostream& out, const CSpieler& spieler);
 };

@@ -40,7 +40,7 @@ public:
 	std::vector<std::pair<std::string, int>> kombinationen();
 	void wuerfelSort();
 	void resetSpielzug();
-	std::string getBewertungText(int& zahl);
+	std::string getBewertungText(int zahl);
 
 	std::vector<CSpieler*> getSpieler() const
 	{

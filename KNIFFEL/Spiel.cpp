@@ -4,16 +4,28 @@
 #include <algorithm>
 #include <vector>
 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						    neuen Spieler anlegen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 void CSpiel::neuerSpieler(std::string& name)
 {	
 	spieler.push_back(new CSpieler(name));
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   bestimmten Spieler löschen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 void CSpiel::spielerLoeschen(int& index)
 {
 	auto iterator = spieler.begin()+index -1;
 	spieler.erase(iterator);
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   gesamte Spieler löschen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 bool CSpiel::alleSpielerLoeschen()
 {
@@ -24,6 +36,10 @@ bool CSpiel::alleSpielerLoeschen()
 	else
 		return false;
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//			   aktuelle Datum und Uhrzeit umwandeln und speichern
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 void CSpiel::aktDatumUndUhrzeit()
 {
@@ -40,6 +56,10 @@ void CSpiel::aktDatumUndUhrzeit()
 	this->aktuelleUhrzeit = str;
 }
 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Standardmäßiges Würfeln
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 void CSpiel::spielerWuerfeln()
 {
 	int zaehler = 0;
@@ -51,10 +71,18 @@ void CSpiel::spielerWuerfeln()
 	}	
 }
 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Würfeln per bestimmter Postition
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 void CSpiel::spielerWuerfeln(size_t& position)
 {
 	wuerfel[position - 1]->wuerfeln();
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Würfel Sortierung
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 void CSpiel::wuerfelSort()
 {
@@ -80,10 +108,18 @@ void CSpiel::wuerfelSort()
 	} while (unsortiert);
 }
 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Datum und Uhrzeit Bildschirm - Ausgabe
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 void CSpiel::aktDatumUndUhrzeitAusgeben() const
 {
 	std::cout << aktuellesDatum << " - " << aktuelleUhrzeit << std::endl;
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						     aktueller Spielzug
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 bool CSpiel::aktuellerSpielzug(size_t& index)
 {
@@ -98,11 +134,18 @@ bool CSpiel::aktuellerSpielzug(size_t& index)
 		return false;
 	}
 }
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Spieler - Spielzug zurücksetzen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 void CSpiel::resetSpielzug()
 {
 	aktZuege = 1;
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						    Würfel - Bildschirmausgabe
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 void CSpiel::wuerfelAusgeben() const
 {
@@ -120,17 +163,22 @@ void CSpiel::wuerfelAusgeben() const
 	}
 }
 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   mögliche Kombinationen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
 std::vector<std::pair<std::string, int>> CSpiel::kombinationen()
 {
 	int zahlen[6]{ 0,0,0,0,0,0 };		// nachträglich von size_t geändert im Falle das Fehler auftreten 
 	std::string ausgabe;
-	int zaehler = 0, parschSumme = 0;
+	int zaehler = 0, parschSumme = 0, chanceSumme = 0;
 	std::vector<std::pair<std::string, int>> kombi;
 
 	for (auto iter = wuerfel.begin(); iter != wuerfel.end(); ++iter)
 	{
 		++zahlen[(*iter)->getGeWuerfelt() - 1];
 		parschSumme += (*iter)->getGeWuerfelt();
+		chanceSumme += (*iter)->getGeWuerfelt();
 	}
 
 	for (int zahl = 0; zahl < 6; ++zahl)		// 1,2,3,4,5,6  wuerfel-zahlen
@@ -147,14 +195,12 @@ std::vector<std::pair<std::string, int>> CSpiel::kombinationen()
 		}
 
 		if (zaehler == 4)
-		{
-			x = 11-1;				
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 30));				// kleine Strasse
+		{			
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(11), 30));				// kleine Strasse
 		}
 		if (zaehler == 5)
-		{
-			x = 12-1;				
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 40));				// grosse Strasse
+		{				
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(12), 40));				// grosse Strasse
 		}
 
 		switch (zahlen[zahl])					
@@ -162,55 +208,62 @@ std::vector<std::pair<std::string, int>> CSpiel::kombinationen()
 		case 0:				// Kein Eintrag
 			zaehler = 0;			
 			break;
-		case 1:			
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl), zahlen[zahl] * zahl+1));		// Einzelne
+		case 1:		
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+1));		// Einzelne
 			break;
 		case 2:
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl), zahlen[zahl] * zahl+2));		// 2 gleiche
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+2));		// 2 gleiche
 			break;
 		case 3:
 			zaehler = 0;
 
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl), zahlen[zahl] * zahl+3));		// 3 gleiche
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+3));		// 3 gleiche
 
-			x = 7-1;
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(x), parschSumme));						// Dreierparsch
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(7), parschSumme));						// Dreierparsch
 
 			for (int j = 0; j < 6; ++j)
 			{
 				if (zahlen[j] == 2)
 				{
-					x = 10 -1;
-					kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 25));						// Full-House
+					kombi.push_back(std::pair<std::string, int>(getBewertungText(10), 25));						// Full-House
 				}
 			}
 			break;
 		case 4:
 			zaehler = 0;
 
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl), zahlen[zahl] * zahl+4));		// 4 gleiche
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+4));		// 4 gleiche
 
-			x = 8-1;
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(x), parschSumme));						// Viererparsch
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(8), parschSumme));						// Viererparsch
 			break;
 		case 5:
 			zaehler = 0;
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl), zahlen[zahl] * zahl+5));		// 5 gleiche
 
-			x = 9-1;	
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 50));								// KNIFFEL
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+5));		// 5 gleiche
+
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(9), 50));								// KNIFFEL
 			break;
 		}		
 	}
+	int x = 13;
+	kombi.push_back(std::pair<std::string, int>(getBewertungText(x), chanceSumme));
+
+	x = 14;
+	kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 0));
+
 	return kombi;
 }
 
-std::string CSpiel::getBewertungText(int& zahl)
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Kombination Text Zuordnung
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+std::string CSpiel::getBewertungText(int zahl)
 {
 	std::string eingabe;
 	std::string fehler = "Fehler - BewertungText";
 
-	switch (zahl+1)
+	switch (zahl)
 	{
 	case 0:
 		// Kein Eintrag
@@ -254,14 +307,12 @@ std::string CSpiel::getBewertungText(int& zahl)
 	case 13:
 		eingabe = "Chance";
 		return eingabe;
+	case 14:
+		eingabe = "STREICHEN";
+		return eingabe;
 	}
 	return fehler;
 }
 
 
-// array[6]  zählervariable im array 
-// schleife durch array ( 2 for schleifen)
-
-// vector<pair<string, int>> zurück liefern (string = "einser" , int = wieviele davon )  // make_pair
-// Fehler auf jeden Fall vermeiden (string)
 
