@@ -5,7 +5,8 @@ class CWuerfel
 {
 private:
 	int gewuerfelt = 0;
-	int wuerfel = 6;
+	const int wuerfel = 6;
+
 public:
 	int wuerfeln();
 

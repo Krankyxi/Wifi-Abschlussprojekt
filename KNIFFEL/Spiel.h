@@ -9,25 +9,17 @@ class CSpiel
 {
 private:
 	std::vector<CWuerfel*> wuerfel;
-	std::vector<CSpieler*> spieler;		// Zugriff dann auf std::map
+	std::vector<CSpieler*> spieler;	
 	
 	size_t maxAnzahlWuerfel = 5;
-	int maxAnzahlSpieler = 4;
+	const int maxAnzahlSpieler = 4;
 	int aktZuege = 1;
 
 	std::string aktuellesDatum;
 	std::string aktuelleUhrzeit;
 
 public:
-	CSpiel()
-	{
-		aktuellesDatum = "NODATE";
-		aktuelleUhrzeit = "NOTIME";
-		for (int i = 0; i < getMaxAnzahlWuerfel(); ++i)
-		{
-			wuerfel.push_back(new CWuerfel);
-		}
-	}
+	CSpiel();		
 	void neuerSpieler(std::string& name);
 	void spielerLoeschen(int& index);
 	bool alleSpielerLoeschen();
@@ -37,9 +29,11 @@ public:
 	void spielerWuerfeln(size_t& position);			
 	void wuerfelAusgeben() const;
 	bool aktuellerSpielzug(size_t& index);
-	std::vector<std::pair<std::string, int>> kombinationen();
 	void wuerfelSort();
 	void resetSpielzug();
+	int gewinnerErmitteln();
+	void lokalSpeichern();
+	std::vector<std::pair<std::string, int>> kombinationen();
 	std::string getBewertungText(int zahl);
 
 	std::vector<CSpieler*> getSpieler() const
@@ -50,7 +44,6 @@ public:
 	{
 		return wuerfel;
 	}
-
 	size_t getMaxAnzahlWuerfel() const
 	{
 		return maxAnzahlWuerfel;
@@ -58,7 +51,20 @@ public:
 	int getMaxAnzahlSpieler() const
 	{
 		return maxAnzahlSpieler;
+	}	
+
+	std::string getDatum() const
+	{
+		return aktuellesDatum;
 	}
-	
+	std::string getZeit() const
+	{
+		return aktuelleUhrzeit;
+	}
+	CSpiel getSpiel() const
+	{
+		return *this;
+	}
 };
 
+// ausführlich dokumentieren der HeaderFiles

@@ -1,8 +1,23 @@
 #include "Spiel.h"
+#include "Historie.h"
 #include <iostream>
 #include <ctime>
 #include <algorithm>
 #include <vector>
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						    Default - Konstruktor
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+CSpiel::CSpiel()
+{
+	aktuellesDatum = "NODATE";
+	aktuelleUhrzeit = "NOTIME";
+	for (int i = 0; i < getMaxAnzahlWuerfel(); ++i)
+	{
+		wuerfel.push_back(new CWuerfel);
+	}	
+}
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //						    neuen Spieler anlegen
@@ -21,6 +36,12 @@ void CSpiel::spielerLoeschen(int& index)
 {
 	auto iterator = spieler.begin()+index -1;
 	spieler.erase(iterator);
+}
+
+void CSpiel::lokalSpeichern()
+{
+	CHistorie::einfuegen(this);	
+	CHistorie::lokalSpeichern();
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -234,22 +255,28 @@ std::vector<std::pair<std::string, int>> CSpiel::kombinationen()
 
 			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+4));		// 4 gleiche
 
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(7), parschSumme));						// Dreierparsch
+
 			kombi.push_back(std::pair<std::string, int>(getBewertungText(8), parschSumme));						// Viererparsch
 			break;
 		case 5:
 			zaehler = 0;
 
-			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl+1), zahlen[zahl] * zahl+5));		// 5 gleiche
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(zahl + 1), zahlen[zahl] * zahl + 5));		// 5 gleiche
+
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(7), parschSumme));						// Dreierparsch
+
+			kombi.push_back(std::pair<std::string, int>(getBewertungText(8), parschSumme));						// Viererparsch				
 
 			kombi.push_back(std::pair<std::string, int>(getBewertungText(9), 50));								// KNIFFEL
 			break;
 		}		
 	}
 	int x = 13;
-	kombi.push_back(std::pair<std::string, int>(getBewertungText(x), chanceSumme));
+	kombi.push_back(std::pair<std::string, int>(getBewertungText(x), chanceSumme));								// Chance
 
 	x = 14;
-	kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 0));
+	kombi.push_back(std::pair<std::string, int>(getBewertungText(x), 0));										// streichen / 0 Eintrag
 
 	return kombi;
 }
@@ -312,6 +339,32 @@ std::string CSpiel::getBewertungText(int zahl)
 		return eingabe;
 	}
 	return fehler;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						   Gewinner berechnen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+int CSpiel::gewinnerErmitteln()
+{
+	int meistePunkte = 0;
+	int zaehler = 0;
+
+	for (auto iter = spieler.begin(); iter != spieler.end(); ++iter)		
+	{
+		if ((*iter)->getKombi().find(20)->second.second > meistePunkte)			// Sucht nach der höchsten Punktzahl, falls ja ...
+		{
+			meistePunkte = (*iter)->getKombi().find(20)->second.second;			// weist sie der Variable den Wert zu
+		}
+	}
+	for (auto iter = spieler.begin(); iter != spieler.end(); ++iter)
+	{
+		++zaehler;
+		if (meistePunkte == (*iter)->getKombi().find(20)->second.second)		// Überprüft nochmal auf gleichheit der Variablen meistePunkte und dem Eintrag des Gewinners
+		{
+			return zaehler-1;													// Gibt die Position zurück an der die Variable (meistePunkte) übereinstimmt
+		}
+	}
 }
 
 

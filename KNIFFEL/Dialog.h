@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Spiel.h"
+#include "Historie.h"
 
 class CDialog
 {
@@ -19,10 +20,10 @@ public:
 	void spielerLaden();
 	void alleSpielerAusgeben() const;
 	void spielenDialog();
+	void frageSpeichern();
 	void spielerTabellen(size_t& zaehler);
 	bool wuerfelAuswahl(size_t& zaehler);
 	bool wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie);
-	void kombinationsAuswahl(size_t& zaehler);
-	
+	void kombinationsAuswahl(size_t& zaehler);	
 };
 

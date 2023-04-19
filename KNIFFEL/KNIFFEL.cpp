@@ -1,15 +1,13 @@
 #include "Spiel.h"
+#include "Historie.h"
 #include "Dialog.h"
-
 #include <iostream>
 
 void test()
 {
     CSpiel spiel;
     CDialog dialog(&spiel);
-
-    dialog.menue();
- 
+    dialog.menue(); 
 }
 
 int main()
