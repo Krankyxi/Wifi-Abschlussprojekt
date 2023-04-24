@@ -14,7 +14,7 @@ private:
 	int aktPunkteStand = 0;
 	int eintragCount = 0;
 	const int maxSpielzuege = 3;
-	const int eintragMax = 13;	
+	const int eintragMax = 13;
 
 public:
 	CSpieler() = default;
@@ -45,6 +45,7 @@ public:
 		return kombi;
 	}
 	
+	void setPunkte(std::map<int, std::pair<std::string, int>>& kombination);
 	void tabelleSpielerGesamt();
 	void kombinationSpeichern(std::vector<std::pair<std::string, int>> kombination);
 	void kombinationOhneEintragStreichen(std::vector<std::pair<std::string, int>> kombination);

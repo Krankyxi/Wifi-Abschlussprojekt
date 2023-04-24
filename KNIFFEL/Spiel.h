@@ -14,14 +14,19 @@ private:
 	size_t maxAnzahlWuerfel = 5;
 	const int maxAnzahlSpieler = 4;
 	int aktZuege = 1;
+	int aktSpieler = 0;
 
 	std::string aktuellesDatum;
 	std::string aktuelleUhrzeit;
 
 public:
 	CSpiel();		
+	~CSpiel();
+	CSpiel(std::vector<CSpieler*>& spielerAusDatei);
+	CSpiel(const CSpiel& spiel);
+	CSpiel operator=(const CSpiel& spiel);
 	void neuerSpieler(std::string& name);
-	void spielerLoeschen(int& index);
+	void spielerLoeschen(const int& index);
 	bool alleSpielerLoeschen();
 	void aktDatumUndUhrzeit();
 	void aktDatumUndUhrzeitAusgeben() const;
@@ -33,10 +38,18 @@ public:
 	void resetSpielzug();
 	int gewinnerErmitteln();
 	void lokalSpeichern();
+	void datenbankSpeichern();
+	void resetAnzSpieler();
+	bool vergleicheCounter();
+	CSpiel* spielLaden();
 	std::vector<std::pair<std::string, int>> kombinationen();
 	std::string getBewertungText(int zahl);
 
-	std::vector<CSpieler*> getSpieler() const
+	const std::vector<CSpieler*>& getSpieler() const	// 1. nur zum lesen 
+	{
+		return spieler;
+	}
+	std::vector<CSpieler*>& getSpieler()				// 2. zum lesen und schreiben(verändern)
 	{
 		return spieler;
 	}
@@ -65,6 +78,8 @@ public:
 	{
 		return *this;
 	}
+	int getAktSpieler() const
+	{
+		return aktSpieler;
+	}
 };
-
-// ausführlich dokumentieren der HeaderFiles

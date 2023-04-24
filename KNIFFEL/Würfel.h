@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 
 class CWuerfel
@@ -9,7 +10,6 @@ private:
 
 public:
 	int wuerfeln();
-
 	int getWuerfel() const
 	{
 		return wuerfel;

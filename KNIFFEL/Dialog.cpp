@@ -1,6 +1,7 @@
 #include "Dialog.h"
 #include "Historie.h"
 #include <iostream>
+#include <cstdlib>
 #include <thread>
 #include <chrono>
 #include <cctype>
@@ -51,7 +52,7 @@ void CDialog::menue()
 				spielerMenue(mehrspieler);			// Mehrspieler MENÜ wird aufgerufen
 				break;
 			case 3:
-				// historieAbrufen();
+				// datenbank aufrufen statistik
 				break;
 			case 4:
 				return;
@@ -71,10 +72,19 @@ void CDialog::spielerMenue(int& auswahl)
 {
 	std::string eingabe;
 	std::string antwort;
+	CSpiel spiel;
 
 	for(;;)
 	{
 		cleanScreen;
+		if (auswahl == 1)
+		{
+			std::cout << "--- Einzelspieler-Modus ---" << std::endl << std::endl;
+		}
+		if (auswahl == 2)
+		{
+			std::cout << "--- Mehrspieler-Modus ---" << std::endl << std::endl;
+		}
 		alleSpielerAusgeben();
 
 		std::cout << "[1] Neuen Spieler anlegen" << std::endl;
@@ -132,7 +142,8 @@ void CDialog::spielerMenue(int& auswahl)
 				}				
 				break;
 			case 3:
-				// CHistorie::spielLaden();
+				pdialog = pdialog->spielLaden();				
+				CDialog dialog(&spiel);
 				break;
 			case 4:
 				spielerLoeschen();			// Spieler wird geloescht
@@ -185,6 +196,7 @@ void CDialog::neuerSpieler(int& auswahl)
 {
 	std::string name;
 	int zaehler = 1;
+
 	for (;;)
 	{
 		cleanScreen;
@@ -301,11 +313,13 @@ void CDialog::frageSpeichern()
 		{
 			pdialog->lokalSpeichern();					// Spiel wird gespeichert 
 			pdialog->alleSpielerLoeschen();				// alle Spieler werden gelöscht
+			pdialog->resetAnzSpieler();
 			return;
 		}
 		if (eingabe[0] == 'n')
 		{
 			pdialog->alleSpielerLoeschen();
+			pdialog->resetAnzSpieler();
 			return;
 		}
 	} while (eingabe[0] != 'j' || eingabe[0] != 'n');
@@ -346,6 +360,7 @@ void CDialog::spielenDialog()
 					std::cout << "Du hast das Spiel mit ( " << pdialog->getSpieler().at(zaehler)->getKombi().find(19)->second.second << " ) Punkten abgeschlossen! " << std::endl;
 					std::cout << std::endl;
 					system("Pause");
+					pdialog->datenbankSpeichern();
 					pdialog->alleSpielerLoeschen();
 					return;
 				}
@@ -357,11 +372,16 @@ void CDialog::spielenDialog()
 					cleanScreen;
 					spielerTabellen(zaehler);
 					gewinner = pdialog->gewinnerErmitteln();
-
+					if (gewinner == -1)
+					{
+						std::cerr << "Der Gewinner konnte nicht uebermittelt werden!" << std::endl;
+						return;
+					}
 					std::cout << std::endl << "Der glueckliche Gewinner ist [ " << pdialog->getSpieler().at(gewinner)->getSpielerName() << " ] mit [ "
 						<< pdialog->getSpieler().at(gewinner)->getKombi().find(19)->second.second << " ] Punkten!" << std::endl;
 					std::cout << std::endl;
-					system("Pause");
+
+					pdialog->datenbankSpeichern();
 					pdialog->alleSpielerLoeschen();
 					return;
 				}
@@ -397,9 +417,13 @@ bool CDialog::wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie)
 			std::cout << std::endl << std::setw(0) << "Spieler " << (zaehler + 1) << ": [" << meineKopie[zaehler]->getSpielerName() << "] ist an der Reihe!" << std::endl << std::endl;
 		}
 
-		std::cout << "[1] Wuerfeln! " << std::endl;			
-		std::cout << "[2] Spiel Beenden" << std::endl;
-			
+		std::cout << "[1] Wuerfeln! " << std::endl;	
+		bool vergleich = pdialog->vergleicheCounter();
+
+		if (vergleich == true)
+		{
+			std::cout << "[2] Spiel Beenden" << std::endl;
+		}			
 		std::getline(std::cin, eingabe);
 
 		if (!(isdigit(eingabe[0])))
@@ -420,8 +444,11 @@ bool CDialog::wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie)
 				} while (aktiv != false);
 				return aktiv;
 			case 2:		
-				frageSpeichern();												// Frage ob gespeichert werden soll nach Beenden Auswahl
-				return aktiv;
+				if (vergleich == true)
+				{
+					frageSpeichern();												// Frage ob gespeichert werden soll nach Beenden Auswahl
+					return aktiv;
+				}
 			default:
 				std::cerr << "Falsche Eingabe - Bitte versuchen Sie es erneut!" << std::endl;
 				sleep;

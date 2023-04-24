@@ -30,6 +30,16 @@ CSpieler::CSpieler(std::string& name)
 	kombi.insert(std::pair<int, std::pair<std::string, int>>(20, std::make_pair("aktueller Punktestand", -1)));
 }
 
+void CSpieler::setPunkte(std::map<int, std::pair<std::string, int>>& kombination)
+{
+	auto it = kombination.begin();
+	for (auto iter = this->kombi.begin(); iter != this->kombi.end() && it != kombination.end(); ++iter, ++it)
+	{
+		(*iter).second.second = it->second.second;
+		this->aktPunkteStand = kombi.find(20)->second.second;
+	}
+}
+
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //							Kombinationen speichern
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

@@ -19,6 +19,18 @@ CSpiel::CSpiel()
 	}	
 }
 
+CSpiel::~CSpiel()
+{
+	for (auto iter = wuerfel.begin(); iter != wuerfel.end(); ++iter)		// Pointer im Vector freigeben
+	{
+		delete* iter;
+	}
+	for (auto iter = spieler.begin(); iter != spieler.begin(); ++iter)		// Pointer im Vector freigeben
+	{
+		delete* iter;
+	}
+}
+
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //						    neuen Spieler anlegen
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -26,17 +38,54 @@ CSpiel::CSpiel()
 void CSpiel::neuerSpieler(std::string& name)
 {	
 	spieler.push_back(new CSpieler(name));
+	++aktSpieler;
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //						   bestimmten Spieler löschen
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-void CSpiel::spielerLoeschen(int& index)
+void CSpiel::spielerLoeschen(const int& index)
 {
 	auto iterator = spieler.begin()+index -1;
 	spieler.erase(iterator);
 }
+
+void CSpiel::resetAnzSpieler()
+{
+	aktSpieler = 0;
+	alleSpielerLoeschen();
+}
+
+void CSpiel::datenbankSpeichern()
+{
+	remove("KNIFFEL-Spieler-Speicher.txt");
+	CHistorie::einfuegen(this);
+	CHistorie::datenbankSpeichern();
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//				Spielzug Zaehler vergleichen mit den anderen Spielern
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+bool CSpiel::vergleicheCounter()
+{
+	for (auto iter = spieler.begin(); iter != spieler.end(); ++iter)
+	{
+		for (auto iterator = iter + 1; iterator != spieler.end(); ++iterator)
+		{
+			if ((*iter)->getCountEintrag() != (*iterator)->getCountEintrag())
+			{
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//				    aktuelles Spiel speichern in Historie
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
 void CSpiel::lokalSpeichern()
 {
@@ -50,12 +99,19 @@ void CSpiel::lokalSpeichern()
 
 bool CSpiel::alleSpielerLoeschen()
 {
-	spieler.clear();
+	while (!spieler.empty())
+	{
+		delete spieler.back();
+		spieler.pop_back();
+	}
+	return true;
+
+	/*spieler.clear();
 
 	if (spieler.empty())
 		return true;
 	else
-		return false;
+		return false;*/
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -98,7 +154,7 @@ void CSpiel::spielerWuerfeln()
 
 void CSpiel::spielerWuerfeln(size_t& position)
 {
-	wuerfel[position - 1]->wuerfeln();
+	wuerfel[position - 1]->wuerfeln();		
 }
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -113,7 +169,7 @@ void CSpiel::wuerfelSort()
 		unsortiert = false;
 		for (size_t i = 0; i < (maxAnzahlWuerfel - 1); i++) 
 		{
-			if (wuerfel[i]->getGeWuerfelt() > wuerfel[i + 1]->getGeWuerfelt())
+			if (wuerfel[i]->getGeWuerfelt() > wuerfel[i + 1]->getGeWuerfelt())		
 			{
 				unsortiert = true;
 				for (; i < (maxAnzahlWuerfel - 1); i++)
@@ -155,6 +211,95 @@ bool CSpiel::aktuellerSpielzug(size_t& index)
 		return false;
 	}
 }
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//			    neu erstelles Objekt wird dem Zeiger zugewiesen
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+CSpiel* CSpiel::spielLaden()
+{	
+	CSpiel* spiel = new CSpiel(CHistorie::spielLaden());		
+	return spiel;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						     Kopie - Konstruktor
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+CSpiel::CSpiel(const CSpiel& spiel) : maxAnzahlSpieler(spiel.maxAnzahlSpieler)		// maxAnzahlSpieler const
+{
+	for (auto iter : spiel.wuerfel)				
+	{
+		wuerfel.push_back(new CWuerfel(*iter));			// neuer Würfel wird hinten angefügt
+	}
+
+	for (auto iter : spiel.spieler) 
+	{
+		spieler.push_back(new CSpieler(*iter));			// neuer Spieler wird hinten angefügt
+	}
+
+	this->maxAnzahlWuerfel = spiel.maxAnzahlWuerfel;	// Attribute kopieren
+	this->aktZuege = spiel.aktZuege;					// ....
+	this->aktSpieler = spiel.aktSpieler;
+	this->aktuellesDatum = spiel.aktuellesDatum;
+	this->aktuelleUhrzeit = spiel.aktuelleUhrzeit;
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						      Zuweisungsoperator = 
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+CSpiel CSpiel::operator=(const CSpiel& spiel)
+{
+	if (this != &spiel)				// wenn das aktuelle Objekt nicht das gleiche wie die Kopie ist (Speicheradresse)
+	{
+		std::vector<CWuerfel*> neuerWuerfel;
+		std::vector<CSpieler*> neuerSpieler;
+
+		for (auto& iter : spiel.wuerfel)
+		{
+			neuerWuerfel.push_back(new CWuerfel(*iter));		// neuer Vector mit Würfel Objekten werden vom Spiel Objekt kopiert
+		}
+		for (auto& iter : wuerfel)								// this-> wuerfel wird komplett gelöscht mit dem Iterator Zugriff 
+		{
+			delete iter;
+		}
+
+		for (auto& iter : spiel.spieler)						
+		{
+			neuerSpieler.push_back(new CSpieler(*iter));		// neuer Vector mit Spieler Objekten werden vom Spiel Objekt kopiert
+		}
+		for (auto& iter : spieler)								// this-> spieler (alt) wird komplett gelöscht mit dem Iterator Zugriff
+		{
+			delete iter;
+		}
+
+		wuerfel = neuerWuerfel;									// nachdem this->würfel leer ist wird der neu erstellte vector Würfel dem alten zugewiesen 
+		spieler = neuerSpieler;									// nachdem this->spieler leer ist wird der neu erstellte vector Spieler dem alten zugewiesen 
+
+		aktZuege = spiel.aktZuege;								// restliche Attribute werden kopiert
+		aktSpieler = spiel.aktSpieler;							// ....
+		aktuellesDatum = spiel.aktuellesDatum;
+		aktuelleUhrzeit = spiel.aktuelleUhrzeit;
+		maxAnzahlWuerfel = spiel.maxAnzahlWuerfel;
+		// maxAnzahlSpieler hier nicht nötig da ich dieses Attribut im Copy Konstruktor in der Initialisierungsliste habe (weil const)
+	}
+	return *this;		// sich selbst zurückgeben
+}
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//						  Konstruktor für neue Spieler
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+CSpiel::CSpiel(std::vector<CSpieler*>& spielerAusDatei)
+{
+	for (int i = 0; i < getMaxAnzahlWuerfel(); ++i)
+	{
+		wuerfel.push_back(new CWuerfel);	// neue Würfel werden erstellt
+	}
+	this->spieler = spielerAusDatei;		// neue Spieler werden aus dem Vector der vorher geladen wurde in den this->vector gespeichert
+}
+
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //						   Spieler - Spielzug zurücksetzen
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -365,6 +510,7 @@ int CSpiel::gewinnerErmitteln()
 			return zaehler-1;													// Gibt die Position zurück an der die Variable (meistePunkte) übereinstimmt
 		}
 	}
+	return -1;
 }
 
 

@@ -33,6 +33,12 @@
     <ClCompile Include="Historie.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="cppSQLite3.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Spiel.h">
@@ -48,6 +54,18 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="Historie.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="cppSQLite3.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="sqlite3ext.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

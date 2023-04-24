@@ -1,32 +1,32 @@
 #pragma once
 
 #include "Spiel.h"
+#include "sqlite3.h"
+#include "cppSQLite3.h"
 
 class CHistorie
 {
 private:
 	static std::string dateiName;
 	static CSpiel* pSpiel;
+	static sqlite3* datenbank;
 
 public:
 	std::string getDateiName() const
 	{
 		return dateiName;
 	}
+
 	static void einfuegen(CSpiel* obj);
-	static void spielLaden();
+	static CSpiel& spielLaden();
 	static void lokalSpeichern();
-	static void schreibAuf(std::ofstream& schreibDatei);
-	static bool leseVon(std::ifstream& einleseDatei);
+	static void schreibAufDatei(std::ofstream& schreibDatei);
+	static std::vector<CSpieler*> leseVonDatei(std::ifstream& einleseDatei);
+	static void datenbankSpeichern();
+	static int datenbankOeffnen();
+	static void datenbankTabelleErstellen(int rc);
+	static void datenbankEinfuegen();
+
+	static int callback(void* nichtbenutzt, int argc, char** argv, char** spaltenName);  // int argc - Anzahl der Zeilen // char** argv - Spaltenwert
 };
 
-// einlesen von Daten in der Historie oder Spiel Klasse ? +
-// beim einlesen initialisieren, wo bzw. wie soll ich das machen ?  +
-// warum funktioniert das durch iterieren nur per Kopie ? (habe keine andere Lösung gefunden) +
-// initialisieren in der Historie des Vectors ? (habe ich über einen Pointer gemacht) +
-// müssen alle Attribute und Methoden static sein ? (sonst funktioniert ja das verwenden nicht, andere Lösung?) +
-// Dokumentation des Codes - wie genau soll der aussehen ? (passt meine Doku.?) +
-
-// Prüfung zwecks Projekt (auf dem guten Weg zur 1? ) wie wird benotet ?
-// 
-// Datenbank beginnen ! 

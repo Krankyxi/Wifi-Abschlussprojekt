@@ -127,18 +127,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cppSQLite3.cpp" />
     <ClCompile Include="Dialog.cpp" />
     <ClCompile Include="Historie.cpp" />
     <ClCompile Include="KNIFFEL.cpp" />
     <ClCompile Include="Spiel.cpp" />
     <ClCompile Include="Spieler.cpp" />
+    <ClCompile Include="sqlite3.c" />
     <ClCompile Include="Würfel.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cppSQLite3.h" />
     <ClInclude Include="Dialog.h" />
+    <ClInclude Include="framework.h" />
     <ClInclude Include="Historie.h" />
     <ClInclude Include="Spiel.h" />
     <ClInclude Include="Spieler.h" />
+    <ClInclude Include="sqlite3.h" />
+    <ClInclude Include="sqlite3ext.h" />
     <ClInclude Include="Würfel.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
