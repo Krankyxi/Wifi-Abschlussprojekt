@@ -1,14 +1,12 @@
 #include "Spiel.h"
 #include "Historie.h"
+
 #include <iostream>
 #include <ctime>
 #include <algorithm>
 #include <vector>
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						    Default - Konstruktor
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Default - Konstruktor
 CSpiel::CSpiel()
 {
 	aktuellesDatum = "NODATE";
@@ -19,62 +17,47 @@ CSpiel::CSpiel()
 	}	
 }
 
+// Destruktor (Spiel)
 CSpiel::~CSpiel()
 {
 	for (auto iter = wuerfel.begin(); iter != wuerfel.end(); ++iter)		// Pointer im Vector freigeben
 	{
 		delete* iter;
 	}
-	for (auto iter = spieler.begin(); iter != spieler.begin(); ++iter)		// Pointer im Vector freigeben
+	for (auto iter = spieler.begin(); iter != spieler.end(); ++iter)		// Pointer im Vector freigeben
 	{
 		delete* iter;
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						    neuen Spieler anlegen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// neuen Spieler anlegen
 void CSpiel::neuerSpieler(std::string& name)
 {	
-	spieler.push_back(new CSpieler(name));
+	spieler.push_back(new CSpieler(name));		// vector neuer Spieler
 	++aktSpieler;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   bestimmten Spieler löschen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-void CSpiel::spielerLoeschen(const int& index)
+// bestimmten Spieler löschen
+void CSpiel::spielerLoeschen(const int index)
 {
-	auto iterator = spieler.begin()+index -1;
-	spieler.erase(iterator);
+	auto iterator = spieler.begin()+index -1;		// übergebene index Position wird den Iterator übergeben
+	spieler.erase(iterator);						// anschließend wird die Position im Vector gelöscht
 }
 
+// Zurücksetzen des Spieler Zählers
 void CSpiel::resetAnzSpieler()
 {
 	aktSpieler = 0;
-	alleSpielerLoeschen();
 }
 
-void CSpiel::datenbankSpeichern()
-{
-	remove("KNIFFEL-Spieler-Speicher.txt");
-	CHistorie::einfuegen(this);
-	CHistorie::datenbankSpeichern();
-}
-
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//				Spielzug Zaehler vergleichen mit den anderen Spielern
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Spielzug Zaehler vergleichen mit den anderen Spielern
 bool CSpiel::vergleicheCounter()
 {
 	for (auto iter = spieler.begin(); iter != spieler.end(); ++iter)
 	{
 		for (auto iterator = iter + 1; iterator != spieler.end(); ++iterator)
 		{
-			if ((*iter)->getCountEintrag() != (*iterator)->getCountEintrag())
+			if ((*iter)->getCountEintrag() != (*iterator)->getCountEintrag())	// Einträge werden mit allen Spielern verglichen
 			{
 				return false;
 			}
@@ -83,84 +66,67 @@ bool CSpiel::vergleicheCounter()
 	return true;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//				    aktuelles Spiel speichern in Historie
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// Datenbank speichern
+void CSpiel::datenbankSpeichern()
+{
+	remove("KNIFFEL-Spieler-Speicher.txt");		// lokale Datei wird gelöscht, da jetzt Eintrag in der Datenbank
+	CHistorie::einfuegen(this);					// der Historie wird das Spiel Obj. übergeben
+	CHistorie::datenbankSpeichern();			// die Historie speichert die Daten
+}
 
+// aktuelles Spiel speichern in Historie
 void CSpiel::lokalSpeichern()
 {
-	CHistorie::einfuegen(this);	
-	CHistorie::lokalSpeichern();
+	CHistorie::einfuegen(this);					// der Historie wird das Spiel Obj. übergeben
+	CHistorie::lokalSpeichern();				// die Historie speichert die lokalen Daten
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   gesamte Spieler löschen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// gesamte Spieler löschen
 bool CSpiel::alleSpielerLoeschen()
 {
-	while (!spieler.empty())
+	while (!spieler.empty())		// solange der Vector nicht leer ist
 	{
-		delete spieler.back();
-		spieler.pop_back();
+		delete spieler.back();		// gibt den Speicher frei vom letzten element im Vector
+		spieler.pop_back();			// entfernt das letzte element im Vector
 	}
+	resetAnzSpieler();
 	return true;
-
-	/*spieler.clear();
-
-	if (spieler.empty())
-		return true;
-	else
-		return false;*/
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//			   aktuelle Datum und Uhrzeit umwandeln und speichern
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// aktuelle Datum und Uhrzeit umwandeln und speichern
 void CSpiel::aktDatumUndUhrzeit()
 {
 	time_t zeit = time(0);
 	struct tm aktZeit;
 	char str[60];
 
-	localtime_s(&aktZeit, &zeit);
+	localtime_s(&aktZeit, &zeit);	
 
-	strftime(str, sizeof str, "%d.%m.%Y", &aktZeit);
+	strftime(str, sizeof str, "%d.%m.%Y", &aktZeit);		
 	this->aktuellesDatum = str;
 
 	strftime(str, sizeof str, "%H:%M:%S", &aktZeit);
 	this->aktuelleUhrzeit = str;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Standardmäßiges Würfeln
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Standardmäßiges Würfeln
 void CSpiel::spielerWuerfeln()
 {
 	int zaehler = 0;
 	
 	for (auto iter = wuerfel.begin(); iter != wuerfel.end(); ++iter, ++zaehler)
 	{
-		// wuerfel[zaehler]->wuerfeln();
 		(*iter)->wuerfeln();
 	}	
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Würfeln per bestimmter Postition
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Würfeln per bestimmter Postition
 void CSpiel::spielerWuerfeln(size_t& position)
 {
 	wuerfel[position - 1]->wuerfeln();		
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Würfel Sortierung
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Würfel Sortierung
 void CSpiel::wuerfelSort()
 {
 	bool unsortiert;
@@ -185,19 +151,7 @@ void CSpiel::wuerfelSort()
 	} while (unsortiert);
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Datum und Uhrzeit Bildschirm - Ausgabe
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
-void CSpiel::aktDatumUndUhrzeitAusgeben() const
-{
-	std::cout << aktuellesDatum << " - " << aktuelleUhrzeit << std::endl;
-}
-
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						     aktueller Spielzug
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// aktueller Spielzug
 bool CSpiel::aktuellerSpielzug(size_t& index)
 {
 	if (aktZuege != spieler[index]->getMaxSpielzuege())
@@ -212,20 +166,28 @@ bool CSpiel::aktuellerSpielzug(size_t& index)
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//			    neu erstelles Objekt wird dem Zeiger zugewiesen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// neu erstelles Objekt wird dem Zeiger zugewiesen
 CSpiel* CSpiel::spielLaden()
 {	
-	CSpiel* spiel = new CSpiel(CHistorie::spielLaden());		
+	CSpiel* spiel = new CSpiel(CHistorie::spielLaden());
+	if (spiel->spieler.empty())
+	{
+		return spiel;				// leeres Spiel wird zurückgeliefert (default)
+	}	
+	for (auto iter = spiel->getSpieler().begin(); iter != spiel->getSpieler().end(); ++iter)
+	{
+		++spiel->aktSpieler;		// aktueller Spieler Zähler wird erhöht
+	}	
 	return spiel;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						     Kopie - Konstruktor
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// Datenbank Statistik Laden
+void CSpiel::datenbankStatistikLaden()
+{
+	CHistorie::datenbankStatistikLaden();
+}
 
+// Kopie - Konstruktor
 CSpiel::CSpiel(const CSpiel& spiel) : maxAnzahlSpieler(spiel.maxAnzahlSpieler)		// maxAnzahlSpieler const
 {
 	for (auto iter : spiel.wuerfel)				
@@ -245,10 +207,7 @@ CSpiel::CSpiel(const CSpiel& spiel) : maxAnzahlSpieler(spiel.maxAnzahlSpieler)		
 	this->aktuelleUhrzeit = spiel.aktuelleUhrzeit;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						      Zuweisungsoperator = 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Zuweisungsoperator = 
 CSpiel CSpiel::operator=(const CSpiel& spiel)
 {
 	if (this != &spiel)				// wenn das aktuelle Objekt nicht das gleiche wie die Kopie ist (Speicheradresse)
@@ -287,32 +246,23 @@ CSpiel CSpiel::operator=(const CSpiel& spiel)
 	return *this;		// sich selbst zurückgeben
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						  Konstruktor für neue Spieler
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Konstruktor für neue Spieler
 CSpiel::CSpiel(std::vector<CSpieler*>& spielerAusDatei)
 {
 	for (int i = 0; i < getMaxAnzahlWuerfel(); ++i)
 	{
 		wuerfel.push_back(new CWuerfel);	// neue Würfel werden erstellt
 	}
-	this->spieler = spielerAusDatei;		// neue Spieler werden aus dem Vector der vorher geladen wurde in den this->vector gespeichert
+	this->spieler = spielerAusDatei;		// neue Spieler werden aus dem Vector der vorher geladen wurde in den this->vector gespeichert	
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Spieler - Spielzug zurücksetzen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Spieler - Spielzug zurücksetzen
 void CSpiel::resetSpielzug()
 {
 	aktZuege = 1;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						    Würfel - Bildschirmausgabe
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Würfel - Bildschirmausgabe
 void CSpiel::wuerfelAusgeben() const
 {
 	int zaehler = 0;
@@ -329,13 +279,10 @@ void CSpiel::wuerfelAusgeben() const
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   mögliche Kombinationen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// mögliche Kombinationen
 std::vector<std::pair<std::string, int>> CSpiel::kombinationen()
 {
-	int zahlen[6]{ 0,0,0,0,0,0 };		// nachträglich von size_t geändert im Falle das Fehler auftreten 
+	int zahlen[6]{ 0,0,0,0,0,0 };			 
 	std::string ausgabe;
 	int zaehler = 0, parschSumme = 0, chanceSumme = 0;
 	std::vector<std::pair<std::string, int>> kombi;
@@ -426,10 +373,7 @@ std::vector<std::pair<std::string, int>> CSpiel::kombinationen()
 	return kombi;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Kombination Text Zuordnung
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Kombination Text Zuordnung
 std::string CSpiel::getBewertungText(int zahl)
 {
 	std::string eingabe;
@@ -486,10 +430,7 @@ std::string CSpiel::getBewertungText(int zahl)
 	return fehler;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Gewinner berechnen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Gewinner berechnen
 int CSpiel::gewinnerErmitteln()
 {
 	int meistePunkte = 0;

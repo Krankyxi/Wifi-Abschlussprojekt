@@ -1,18 +1,14 @@
 #include "Spiel.h"
 #include "Historie.h"
 #include "Dialog.h"
+
 #include <iostream>
 
-void test()
+int main()         // MANI = MAIN ;)
 {
     CSpiel spiel;
     CDialog dialog(&spiel);
-    dialog.menue(); 
-}
-
-int main()
-{
-    test();
+    dialog.menue();   
     
     return 0;
 }

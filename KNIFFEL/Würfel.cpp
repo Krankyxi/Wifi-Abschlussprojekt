@@ -1,12 +1,10 @@
 #include "Würfel.h"
+
 #include <random>
 
 static std::random_device rd;
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//							  Würfeln per "Zufall"
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Würfeln per "Zufall"
 int CWuerfel::wuerfeln()
 {	
 	this->gewuerfelt = rd() % wuerfel +1;
@@ -17,10 +15,7 @@ int CWuerfel::wuerfeln()
 	return this->gewuerfelt;	
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						Bildschirm-Ausgabe für den Würfel
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Bildschirm-Ausgabe für den Würfel
 std::ostream& operator<<(std::ostream& out, const CWuerfel& wurf)
 {
 	out << wurf.gewuerfelt;

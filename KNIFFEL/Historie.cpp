@@ -1,5 +1,6 @@
 #include "Historie.h"
 #include <fstream>
+
 #include <iostream>
 #include <string>
 #include <map>
@@ -7,18 +8,17 @@
 #include <cstdlib>
 #include <thread>
 #include <chrono>
+#include <iomanip>
 
 #define cleanScreen std::system("CLS");									// leert die Konsolenoberfläche 
 #define sleep std::this_thread::sleep_for(std::chrono::seconds(2));		// stoppt den Konsolen-Output für 2 Sekunden 
 
-std::string CHistorie::dateiName = "KNIFFEL-Spieler-Speicher.txt";
-CSpiel* CHistorie::pSpiel;
-sqlite3* CHistorie::datenbank;
+std::string CHistorie::dateiName = "KNIFFEL-Spieler-Speicher.txt";		// lokaler Pfad ("NICHT ABSOLUT")
+CSpiel* CHistorie::pSpiel;												// static Zeiger auf Spiel Objekt
+sqlite3* CHistorie::datenbank;											// static Zeiger auf Datenbank Variable
+int CHistorie::ladeAuswahl = 0;											// static Variable zum Auswählen des Spiel-Modus (intern)
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					    lokale Speicherung (datei.txt)
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// lokale Speicherung (datei.txt)
 void CHistorie::lokalSpeichern()
 {
 	std::ofstream schreibDatei;
@@ -37,37 +37,46 @@ void CHistorie::lokalSpeichern()
 	schreibDatei.close();					// File schließen
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					 Speicherung aus der Datei(.txt) laden
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Speicherung aus der Datei(.txt) laden
 CSpiel& CHistorie::spielLaden()
 {
-	std::vector<CSpieler*> spieler;
+	std::vector<CSpieler*> spieler;								// neuer Vector wird erstellt
 	std::ifstream einleseDatei;
-	CSpiel* spiel(new CSpiel(spieler));
+	CSpiel* spiel = nullptr;		
 
-	einleseDatei.open(dateiName, std::ios::in);
+	try
+	{
+		einleseDatei.open(dateiName, std::ios::in);
+		if (einleseDatei)									// erfolgreich geöffnet
+		{
+			spieler = leseVonDatei(einleseDatei);			// Funktion zum schreiben auf die Datei wird geoeffnet			
+			einleseDatei.close();							// Datei wird geschlossen
 
-	if (einleseDatei)					// erfolgreich geöffnet
-	{
-		spieler = leseVonDatei(einleseDatei);		// Funktion zum schreiben auf die Datei wird geoeffnet
-		einleseDatei.close();
-		spiel = new CSpiel(spieler);				
+			if (spieler.empty())							// Im Falle das der Vector leer ist
+			{
+				throw CHistorieException("Fehler ist aufgetreten: Die Spielerliste ist leer!");			// Fehlermeldung		
+			}
+			else
+			{
+				spiel = new CSpiel(spieler);				// *spiel wird mit einem neuen Spiel initialisiert 
+			}
+		}
+		else
+		{
+			einleseDatei.close();
+			std::cout << "Es exisitieren keine gespeicherten Daten!" << std::endl;
+			sleep;
+		}
 	}
-	else
+	catch (const CHistorieException& e)
 	{
-		std::cout << "Es exisitieren keine gespeicherten Daten!" << std::endl;
-		sleep;
+		std::cerr << e.what() << std::endl;
+		spiel = new CSpiel();
 	}
-	einleseDatei.close();				// FIle schließen
-	return *spiel;
+	return *spiel;									// Zeiger auf Spiel wird zurück geliefert
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					 einlesen der Daten aus der Datei(.txt)
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// einlesen der Daten aus der Datei(.txt)
 std::vector<CSpieler*> CHistorie::leseVonDatei(std::ifstream& einleseDatei)
 {
 	std::vector<CSpieler*> spieler;				// Vector mit Zeiger auf Spieler Objekte
@@ -82,88 +91,151 @@ std::vector<CSpieler*> CHistorie::leseVonDatei(std::ifstream& einleseDatei)
 	int punkte[20]{};
 	std::string datum, uhrzeit, name, einlesen;
 	char trenner;
-
-	einleseDatei >> einzelOderMehrSpieler;		// Einzel(1) oder Mehrspieler(2)
-	einleseDatei.get(trenner);
-	if (trenner != '|')
+	
+	try
 	{
-		std::cerr << "Fehler aufgetreten: Spieler-Modus konnte nicht gelesen werden!";
+		einleseDatei >> einzelOderMehrSpieler;		// Einzel(1) oder Mehrspieler(2)
+		einleseDatei.get(trenner);
+		if (trenner != '|')
+		{
+			throw CHistorieException("Fehler aufgetreten : Spieler - Modus konnte nicht gelesen werden!");
+		}
 	}
+	catch (const CHistorieException& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return {};									// leerer Vector wird zurückgegeben
+	}
+
+	if (ladeAuswahl == 1 && einzelOderMehrSpieler == 2)
+	{
+		std::cerr << "Es exisitieren keine Einzelspieler Daten im Speicher!" << std::endl;
+	}
+	if (ladeAuswahl == 2 && einzelOderMehrSpieler == 1)
+	{
+		std::cerr << "Es exisitieren keine Mehrspieler Daten im Speicher!" << std::endl;
+	}	
 
 	while (einleseDatei)
 	{
-		einleseDatei >> spielerAnzahl;			// Wieviele Spieler
-		einleseDatei.get(trenner);
-		if (trenner != '|')
+		try
 		{
-			std::cerr << "Fehler aufgetreten: Spieler-Anzahl konnte nicht gelesen werden!";
+			einleseDatei >> spielerAnzahl;			// Wieviele Spieler
+			einleseDatei.get(trenner);
+			if (trenner != '|')
+			{
+				throw CHistorieException("Fehler aufgetreten: Spieler-Anzahl konnte nicht gelesen werden!");
+			}
 		}
-		einleseDatei >> spielerNr;				// Spieler Nummer
-		einleseDatei.get(trenner);
-		if (trenner != '|')
+		catch (const CHistorieException& e)
 		{
-			std::cerr << "Fehler aufgetreten: Spieler Nummer konnte nicht gelesen werden!";
+			std::cerr << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
 		}
-		std::getline(einleseDatei, einlesen, '|');
-		datum = einlesen;							// Datum
-		std::getline(einleseDatei, einlesen, '|');
-		uhrzeit = einlesen;							// Uhrzeit
 
-		/*einleseDatei >> spielerCounter;
-		einleseDatei.get(trenner);
-		if (trenner != '|')
+		try
 		{
-			std::cerr << "Fehler aufgetreten: Spieler Spielzug Zaehler konnte nicht gelesen werden!";
-		}*/
+			einleseDatei >> spielerNr;				// Spieler Nummer
+			einleseDatei.get(trenner);
+			if (trenner != '|')
+			{
+				throw CHistorieException("Fehler aufgetreten: Spieler Nummer konnte nicht gelesen werden!");
+			}
+		}
+		catch (const CHistorieException& e)
+		{
+			std::cerr << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
+		}
 
-		std::getline(einleseDatei, einlesen, '|');
-		name = einlesen;							// Name des Spielers
+		try
+		{
+			std::getline(einleseDatei, einlesen, '|');
+			datum = einlesen;							// Datum
+			std::getline(einleseDatei, einlesen, '|');
+			uhrzeit = einlesen;							// Uhrzeit
+		}
+		catch (const CHistorieException& e)
+		{
+			std::cerr << "Fehler beim Lesen von Datum und Uhrzeit: " << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
+		}
+
+		try
+		{
+			std::getline(einleseDatei, einlesen, '|');
+			name = einlesen;							// Name des Spielers 
+		}
+		catch (const CHistorieException& e)
+		{
+			std::cerr << "Fehler aufgetreten: Spieler-Name konnte nicht gelesen werden: " << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
+		}
 
 		spieler.push_back(new CSpieler(name));
 		std::map<int, std::pair<std::string, int>> kombi = spieler.at(zaehler)->getKombi();			// map zum einfuegen in das Spieler Objekt wird erstellt 
 
-		for (int i = 0; i < 20; ++i)
+		try
 		{
-			einleseDatei >> punkte[i];				// Punkte des Spielers
+			for (int i = 0; i < 20; ++i)
+			{
+				einleseDatei >> punkte[i];				// Punkte des Spielers
+				einleseDatei.get(trenner);
+				if (trenner != '|')
+				{
+					throw CHistorieException("Fehler aufgetreten: Punkte konnten nicht gelesen werden!");
+				}
+			}
+		}
+		catch (const CHistorieException& e)
+		{
+			std::cout << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
+		}
+
+		try
+		{
+			einleseDatei >> trenner;
 			einleseDatei.get(trenner);
 			if (trenner != '|')
 			{
-				std::cerr << "Fehler aufgetreten: Punkte konnten nicht gelesen werden!";
+				throw CHistorieException("Fehler aufgetreten: Trenn-Zeichen konnte nicht gelesen werden!");
 			}
 		}
-		einleseDatei >> trenner;
-		einleseDatei.get(trenner);
-		if (trenner != '|')
+		catch (const CHistorieException& e)
 		{
-			std::cerr << "Fehler aufgetreten: Trenn-Zeichen konnte nicht gelesen werden!";
+			std::cout << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
 		}
 
-		auto iter = spieler.begin() + zaehler;
-
-		if (spielerNummerZaehler == spielerNr)		// Zaehler == spielerNr
+		try
 		{
-			zaehlerPunkte = 0;
-			for (auto& iterator : kombi)			// ranged based for schleife für kombo Punkte
+			if (spielerNummerZaehler == spielerNr)		// Zaehler == spielerNr
 			{
-				if (zaehlerPunkte < 20)
+				zaehlerPunkte = 0;
+				for (auto& iterator : kombi)			// ranged based for schleife für kombo Punkte
 				{
-					iterator.second.second = punkte[zaehlerPunkte];		// Kombinationen einlesen
-					++zaehlerPunkte;
+					if (zaehlerPunkte < 20)
+					{
+						iterator.second.second = punkte[zaehlerPunkte];		// Kombinationen einlesen
+						++zaehlerPunkte;
+					}
 				}
+				spieler.at(zaehler)->setPunkte(kombi);		// Kombo-Punkte in der SpielKlasse initialisieren (setpunkte)
 			}
-			spieler.at(zaehler)->setPunkte(kombi);		// Kombo-Punkte in der SpielKlasse initialisieren (setpunkte)
+			++spielerNummerZaehler;
+			++zaehler;
 		}
-		++spielerNummerZaehler;
-		++zaehler;
+		catch (const CHistorieException& e)
+		{
+			std::cerr << "Fehler aufgetreten : Spieler - Punkte konnte nicht gelesen werden : " << e.what() << std::endl;
+			return {};								// leerer Vector wird zurückgegeben
+		}
 	}
-	return spieler;		// vector mit zeigern zurück
+	return spieler;	
 }
 
-
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//			     Werte des Spiels in die Datei(.txt) exportieren
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Werte des Spiels in die Datei(.txt) exportieren
 void CHistorie::schreibAufDatei(std::ofstream& schreibDatei)
 {
 	int zaehler = 0;
@@ -193,20 +265,88 @@ void CHistorie::schreibAufDatei(std::ofstream& schreibDatei)
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					 Vector Zeiger Initialisierung 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Vector Zeiger Initialisierung 
 void CHistorie::einfuegen(CSpiel* obj)
 {
 	pSpiel = obj;							// Historie-Pointer intialisieren (Spieler-Objekt)
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					 Datenbank Tabelle erstellen 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// Spiel Laden Auswahl 
+const int CHistorie::setLadeAuswahl(int spielerauswahl)
+{
+	// beim Einzelspieler Modus darf kein Mehrspieler geladen werden 
+	if (spielerauswahl == 1)
+	{
+		ladeAuswahl = spielerauswahl;		// static variable für die Kontrolle in welchen Spielmodus sich der Spieler befindet
+		return ladeAuswahl;
+	}
+	// beim Mehrspieler Modus darf kein Einzelspieler geladen werden
+	if (spielerauswahl == 2)
+	{
+		ladeAuswahl = spielerauswahl;
+		return ladeAuswahl;
+	}
+	return 0;
+}
 
-void CHistorie::datenbankTabelleErstellen(int rc)
+// Datenbank Abfrage und Ausgabe
+void CHistorie::datenbankTabelleAusgeben()
+{
+	sqlite3_stmt* statement;		// Zeiger auf Statement Objekt (Vorbereitung)
+	const char* abfrage = "SELECT SpielID_PK, SpielDatum, SpielUhrzeit, SpielerAnzahl, SpielerNr, SpielerName, SpielerPkt "		
+						  "FROM Spiel JOIN Spieler ON Spiel.SpielID_PK = Spieler.SpielID";
+
+	int rc = sqlite3_prepare_v2(datenbank, abfrage, -1, &statement,  0);				// Statement Übergabe 
+
+	if (rc != SQLITE_OK)	// Statement Check 
+	{
+		std::cerr << "SQL-Error: (" << sqlite3_errmsg(datenbank) << ")" << std::endl;
+	}
+	else
+	{
+		std::cout << std::left << std::setw(15) << "Datum" << "\t"						// Tabellen Format
+			<< std::left << std::setw(15) << "Uhrzeit" << "\t"
+			<< std::left << std::setw(10) << "SpielNr" << "\t"
+			<< std::left << std::setw(15) << "Anzahl" << "\t"
+			<< std::left << std::setw(10) << "Spieler" << "\t"
+			<< std::left << std::setw(15) << "Name" << "\t"
+			<< std::left << std::setw(10) << "Punkte" << std::endl;
+
+		std::cout << std::setfill('-') << std::setw(102) << "-" << std::endl;			// Tabellen Format
+		std::cout << std::setfill(' ');
+
+		while (sqlite3_step(statement) == SQLITE_ROW)		// ist SQLITE_ROW OK dann enthält das Statement Zeilen 
+		{
+			int spielID = sqlite3_column_int(statement, 0);
+			const char* spielDatum = (const char*)sqlite3_column_text(statement, 1);	// Wert aus der ersten Spalte in der aktuellen Zeile wird zurückgegeben
+			const char* spielUhrzeit = (const char*)sqlite3_column_text(statement, 2);	// Wert aus der zweiten Spalte in der aktuellen Zeile wird zurückgegeben
+			int spielerAnzahl = sqlite3_column_int(statement, 3);						// ......
+			int spielerNr = sqlite3_column_int(statement, 4);
+			const char* spielerName = (const char*)sqlite3_column_text(statement, 5);
+			int spielerPkt = sqlite3_column_int(statement, 6);
+
+			std::cout << std::left << std::setw(15) << spielDatum << "\t"				// Ausgabe der Werte Variablen aus der Tabelle
+				<< std::left << std::setw(15) << spielUhrzeit << "\t"					// .....
+				<< std::left << std::setw(10) << spielID << "\t"
+				<< std::left << std::setw(15) << spielerAnzahl << "\t"
+				<< std::left << std::setw(10) << spielerNr << "\t"
+				<< std::left << std::setw(15) << spielerName << "\t"
+				<< std::left << std::setw(10) << spielerPkt << std::endl;
+		}
+	}
+	sqlite3_finalize(statement);		// Speicher von statement freigeben
+	std::cout << std::endl;
+}
+
+// Datenbank Statistik Laden
+void CHistorie::datenbankStatistikLaden()
+{
+	datenbankOeffnen();
+	datenbankTabelleAusgeben();
+}
+
+// Datenbank Tabelle erstellen 
+void CHistorie::datenbankTabelleErstellen()
 {
 	const char* spiel;
 	const char* spieler;
@@ -238,7 +378,7 @@ void CHistorie::datenbankTabelleErstellen(int rc)
 	char* fehlermeldung = nullptr;
 
 	// rc = Result and Error Code / Ergebniscode zurückgeliefert 
-	rc = sqlite3_exec(datenbank, spiel, callback, 0, &fehlermeldung);		// 1 Tabelle
+	int rc = sqlite3_exec(datenbank, spiel, callback, 0, &fehlermeldung);	// 1 Tabelle
 	if (rc != SQLITE_OK)													// Check
 	{
 		std::cerr << "SQL-Error: (" << fehlermeldung << ")" << std::endl;
@@ -270,22 +410,16 @@ void CHistorie::datenbankTabelleErstellen(int rc)
 	//}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					       Datenbank speichern
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Datenbank speichern
 void CHistorie::datenbankSpeichern()
 {
 	int rc = datenbankOeffnen();	
-	datenbankTabelleErstellen(rc);	
+	datenbankTabelleErstellen();	
 	datenbankEinfuegen();
 	sqlite3_close(datenbank);
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						   Datenbank Einträge
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Datenbank Einträge
 void CHistorie::datenbankEinfuegen()
 {
 	std::string spielEintrag, spielerEintrag;
@@ -298,6 +432,7 @@ void CHistorie::datenbankEinfuegen()
 
 	spielEintrag = "INSERT INTO SPIEL (SpielDatum, SpielUhrzeit, SpielerAnzahl) " \
 				"VALUES ('" + datum + "','" + zeit + "','" + spAnzahl + "');";
+	
 	rc = sqlite3_exec(datenbank, spielEintrag.c_str(), callback, 0, &fehlermeldung);
 
 	int64_t spielID = sqlite3_last_insert_rowid(datenbank);		// Zeilen ID erstellen für INSERT (Warnung bei int zuweisung - evtl.Datenverlust)
@@ -312,13 +447,14 @@ void CHistorie::datenbankEinfuegen()
 		
 		spielerEintrag = "INSERT INTO SPIELER (SpielID, SpielerNr, SpielerName, SpielerPkt) " \
 			"VALUES ('" + std::to_string(spielID) + "','" + spielerNr + "','" + name + "','" + pkt + "');";
+
 		rc2 = sqlite3_exec(datenbank, spielerEintrag.c_str(), callback, 0, &fehlermeldung);
 
 		++zaehler;
 		++spielerNummer;
 	}
 
-	if (rc != SQLITE_OK) 
+	if (rc != SQLITE_OK)	// Check Ergebnis
 	{
 		std::cerr << "SQL-Error: " << fehlermeldung << std::endl;
 		sqlite3_free(fehlermeldung);
@@ -328,7 +464,7 @@ void CHistorie::datenbankEinfuegen()
 		std::cout << "Datensaetze erfolgreich erstellt!" << std::endl;
 	}
 
-	if (rc2 != SQLITE_OK)
+	if (rc2 != SQLITE_OK)	// Check Ergebnis
 	{
 		std::cerr << "SQL-Error: " << fehlermeldung << std::endl;
 		sqlite3_free(fehlermeldung);
@@ -339,26 +475,94 @@ void CHistorie::datenbankEinfuegen()
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					      Datenkbank Öffnen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Datenkbank Öffnen
 int CHistorie::datenbankOeffnen()
 {	
 	int rc = sqlite3_open("Kniffel.db",&datenbank);		// Datenbank öffnen
 
 	if (rc) 
 	{
-		std::cerr << "Kann nicht geoeffnet werden! Fehler: " << sqlite3_errmsg(datenbank) << std::endl;
-		return(0);
+		std::cerr << "Kann nicht geoeffnet werden! Fehler: " << sqlite3_errmsg(datenbank) << std::endl << std::endl;
+		return 0;
 	}
-	else 
+	else
 	{
-		std::cout << "Oeffnen der Datenbank war erfolgreich!" << std::endl;
+		std::cout << "Oeffnen der Datenbank war erfolgreich!" << std::endl << std::endl;
 		return rc;
 	}
 }
 
+// Datenbank löschen
+void CHistorie::datenbankLoeschen()
+{
+	datenbankOeffnen();
+
+	const char* spielLoeschen = "DELETE FROM Spiel;";			// alle Datensätze aus der Tabelle 'Spiel'löschen
+	const char* spielerLoeschen = "DELETE FROM Spieler;";		// alle Datensätze aus der Tabelle 'Spieler' löschen
+
+	char* fehlermeldung = nullptr;
+
+	int rc = sqlite3_exec(datenbank, spielLoeschen, callback, 0, &fehlermeldung);
+
+	if (rc != SQLITE_OK)	// check
+	{
+		std::cerr << "SQL-Error: (" << fehlermeldung << ")" << std::endl;
+	}
+	else
+	{
+		std::cout << "Alle Eintraege wurden erfolgreich geloescht!" << std::endl;		
+	}
+
+	rc = sqlite3_exec(datenbank, spielerLoeschen, callback, 0, &fehlermeldung);
+
+	if (rc != SQLITE_OK)	// check
+	{
+		std::cerr << "SQL-Error: (" << fehlermeldung << ")" << std::endl;
+	}
+	else
+	{
+		std::cout << "Alle Eintraege wurden erfolgreich geloescht!" << std::endl;
+	}
+	sqlite3_close(datenbank);
+}
+
+// bestimmte Datensätze löschen aus der Datenbank
+void CHistorie::ausDatenbankloeschen(std::string userEingabe)
+{
+	int ergebnis = datenbankOeffnen();													// Datenbank öffnen
+
+	std::string spielID = "DELETE FROM Spieler WHERE SpielID = " + userEingabe;			// zugehörige Spieler zur SpielID (Statement)
+
+	char* fehlermeldung = nullptr;
+
+	int rc = sqlite3_exec(datenbank, spielID.c_str(), callback, 0, &fehlermeldung);		// zugehörige Spieler zur SpielID werden gelöscht
+
+	if (rc != SQLITE_OK)	// check 
+	{
+		std::cerr << "SQL-Error: " << fehlermeldung << std::endl;
+	}
+	else
+	{
+		std::cout << "Spieler erfolgreich geloescht!" << std::endl;
+	}
+
+	std::string SpielIDSpieler = "DELETE FROM Spiel WHERE SpielID_PK = " + userEingabe;	// Spiel (Statement)
+
+	rc = sqlite3_exec(datenbank, SpielIDSpieler.c_str(), callback, 0, &fehlermeldung);	// Spiel wird gelöscht
+
+	if (rc != SQLITE_OK)	// check
+	{
+		std::cerr << "SQL-Error: " << fehlermeldung << std::endl;
+	}
+	else
+	{
+		std::cout << "Spiel erfolgreich geloescht!" << std::endl;
+	}
+
+	sqlite3_close(datenbank);															// Datenbank schließen
+}
+
+// Callback Funktion (Datenbankabfrage SQLite / Spalten und Werte)
 int CHistorie::callback(void* nichtbenutzt, int argc, char** argv, char** spaltenName) 
 {	
 	for (int i = 0; i < argc; i++) 
@@ -369,23 +573,3 @@ int CHistorie::callback(void* nichtbenutzt, int argc, char** argv, char** spalte
 	return 0;
 }
 
-
-// Person und Interesse Tabelle
-
-//CREATE TABLE "PerInt" (
-//	"PerIntPersonFK"	INTEGER NOT NULL,
-//	"PerIntInteresseFK"	INTEGER NOT NULL,
-//	PRIMARY KEY("PerIntInteresseFK", "PerIntPersonFK"),
-//	FOREIGN KEY("PerIntPersonFK") REFERENCES "Person"("PerPK"),
-//	FOREIGN KEY("PerIntInteresseFK") REFERENCES "Interesse"("IntPK")
-//	);
-
-// Spiel und Spieler Tabelle
-
-//CREATE TABLE "SpSp" (
-//	"SpSpSpieler_FK"	INT NOT NULL,
-//	"SpSpSpiel_FK"	INT NOT NULL,
-//	FOREIGN KEY("SpSpSpieler_FK") REFERENCES "Spieler"("SpielerID_PK"),
-//	FOREIGN KEY("SpSpSpiel_FK") REFERENCES "Spiel"("ID_PK"),
-//	PRIMARY KEY("SpSpSpieler_FK", "SpSpSpiel_FK")
-//	);

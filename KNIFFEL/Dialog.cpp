@@ -1,5 +1,6 @@
 #include "Dialog.h"
 #include "Historie.h"
+
 #include <iostream>
 #include <cstdlib>
 #include <thread>
@@ -9,13 +10,10 @@
 #include <algorithm>
 #include <map>
 
-#define cleanScreen std::system("CLS");									// leert die Konsolenoberfläche 
-#define sleep std::this_thread::sleep_for(std::chrono::seconds(2));		// stoppt den Konsolen-Output für 2 Sekunden
+#define cleanScreen std::system("CLS");											// leert die Konsolenoberfläche 
+#define sleep std::this_thread::sleep_for(std::chrono::milliseconds(1300));		// stoppt den Konsolen-Output für 1,3 Sekunden
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//									Hauptmenü
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Hauptmenü
 void CDialog::menue()	
 {
 	cleanScreen;
@@ -31,7 +29,8 @@ void CDialog::menue()
 		std::cout << "[1] Einzelspieler" << std::endl;
 		std::cout << "[2] Mehrspieler" << std::endl;
 		std::cout << "[3] Historie" << std::endl;
-		std::cout << "[4] Spiel beenden" << std::endl;
+		std::cout << "[4] Spielanleitung" << std::endl;
+		std::cout << "[5] Spiel beenden" << std::endl;
 		std::getline(std::cin, eingabe);
 
 		if (!(std::isdigit(eingabe[0])))
@@ -45,16 +44,19 @@ void CDialog::menue()
 			{
 			case 1:			
 				einzelspieler = stoi(eingabe);
-				spielerMenue(einzelspieler);		// Einzelspieler MENÜ wird aufgerufen					
+				spielerMenue(einzelspieler);			// Einzelspieler MENÜ wird aufgerufen					
 				break;
 			case 2:
 				mehrspieler = stoi(eingabe);
-				spielerMenue(mehrspieler);			// Mehrspieler MENÜ wird aufgerufen
+				spielerMenue(mehrspieler);				// Mehrspieler MENÜ wird aufgerufen
 				break;
 			case 3:
-				// datenbank aufrufen statistik
+				historieMenue();
 				break;
 			case 4:
+				spielanleitung();
+				break;
+			case 5:
 				return;
 			default:
 				std::cerr << "Falsche Eingabe - bitte versuchen Sie es noch einmal" << std::endl;
@@ -64,10 +66,45 @@ void CDialog::menue()
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//							  Spieler - Menü
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// Historie Menü
+void CDialog::historieMenue()
+{
+	std::string eingabe;
 
+	for (;;)
+	{
+		cleanScreen;							// Bildschirm leeren
+		pdialog->datenbankStatistikLaden();		// Datenbank Statistik Laden
+
+		std::cout << "[1] Spiel-Nr loeschen" << std::endl;
+		std::cout << "[2] Vollstaendig loeschen" << std::endl;
+		std::cout << "[3] Auswahl beenden" << std::endl;
+		std::getline(std::cin, eingabe);
+
+		if (!(std::isdigit(eingabe[0])))
+		{
+			std::cerr << "Falsche Eingabe - bitte versuchen Sie es noch einmal" << std::endl;
+			sleep;
+		}
+		else if (stoi(eingabe) == 1)
+		{
+			std::cout << "Welche Spiel-Nr wollen Sie loeschen ? ";
+			std::getline(std::cin, eingabe);
+
+			CHistorie::ausDatenbankloeschen(eingabe);		// Index Übergabe für die Spiel Nummer die gelöscht werden soll 
+		}
+		else if (stoi(eingabe) == 2)
+		{
+			CHistorie::datenbankLoeschen();					// Komplette Datenbank wird gelöscht (Inhalt)
+		}
+		else if (stoi(eingabe) == 3)
+		{
+			return;
+		}
+	}
+}
+
+// Spieler - Menü
 void CDialog::spielerMenue(int& auswahl)		
 {
 	std::string eingabe;
@@ -94,7 +131,7 @@ void CDialog::spielerMenue(int& auswahl)
 		std::cout << "[5] Auswahl beenden" << std::endl;
 		std::getline(std::cin, eingabe);
 
-		if (!(std::isdigit(eingabe[0])))
+		if (eingabe.empty() || !(std::isdigit(eingabe[0])))
 		{
 			std::cerr << "Falsche Eingabe - Bitte versuchen Sie es noch einmal" << std::endl;
 			sleep;
@@ -105,21 +142,18 @@ void CDialog::spielerMenue(int& auswahl)
 			switch (stoi(eingabe))
 			{
 			case 1:
-				if (auswahl == 1)			// Einzelnen Spieler anlegen
+				if (auswahl == 1 || auswahl == 2)	// SpielModus Auswahl	
 				{
-					neuerSpieler(auswahl);			
+					neuerSpieler(auswahl);			// SpielerModus wird zugewiesen
 				}
-				if (auswahl == 2)			// Mehrere Spieler anlegen
-				{
-					neuerSpieler(auswahl);			
-				}
+				
 				break;
 			case 2:						
-				if (pdialog->getSpieler().size() > 0)
+				if (pdialog->getSpieler().size() > 0)	
 				{					
 					if (auswahl == 1)
 					{
-						spielenDialog();		// Einzelspieler wird gestartet	
+						spielenDialog();			// Einzelspieler wird gestartet	
 					}
 					if (auswahl == 2)
 					{
@@ -142,25 +176,50 @@ void CDialog::spielerMenue(int& auswahl)
 				}				
 				break;
 			case 3:
-				pdialog = pdialog->spielLaden();				
-				CDialog dialog(&spiel);
+				if (auswahl == 1)
+				{
+					int fehler = CHistorie::setLadeAuswahl(auswahl);		// setzt die static Variable in der Klasse Historie auf 1 für Einzelspieler
+					if (fehler == 0)
+					{
+						std::cerr << "Auswahl des Spiel-Modus konnte nicht gelesen werden" << std::endl;
+						sleep;
+						return;
+					}
+				}
+				if (auswahl == 2)
+				{
+					int fehler = CHistorie::setLadeAuswahl(auswahl);		// setzt die static Variable in der Klasse Historie auf 2 für Mehrspieler
+					if (fehler == 0)
+					{
+						std::cerr << "Auswahl des Spiel-Modus konnte nicht gelesen werden" << std::endl;
+						sleep;
+						return;
+					}
+				}
+				pdialog = pdialog->spielLaden();			// geladene Spiel wird dem pointer zugewiesen 		
+				if (pdialog->getSpiel().getSpieler().empty())
+				{
+					system("Pause");
+					break;
+				}
+				CDialog dialog(&spiel);						// neuer Dialog wird erstellt und initialisiert (überschrieben)
 				break;
 			case 4:
-				spielerLoeschen();			// Spieler wird geloescht
+				spielerLoeschen();							// Spieler wird nach der Auswahl geloescht
 				break;
 			case 5:
 				if (pdialog->getSpieler().size() == 0)
 				{
-					return;
+					return;									// Spielergröße gleich 0 wird dieses Menü verlassen	
 				}
-				else if(pdialog->getSpieler().size() > 0)
+				else if(pdialog->getSpieler().size() > 0)	// Spielergröße größer als 0, Abfrage startet ...
 				{					
 					cleanScreen;											
 					std::cout << "Wollen Sie das Menue wirklich verlassen ?" << std::endl;
 					std::cout << "Es werden danach alle Spieler geloescht! (j/n): " << std::endl;
 					std::getline(std::cin, antwort);
 
-					if (antwort[0] == 'j')
+					if (antwort[0] == 'j')						// Antwort mit 'j' werden alle Spieler gelöscht
 					{
 						cleanScreen;
 						pdialog->alleSpielerLoeschen();			// alle Spieler werden beim Verlassen des Menues geloescht
@@ -170,7 +229,7 @@ void CDialog::spielerMenue(int& auswahl)
 							std::cout << "Spieler geloescht!" << std::endl;
 							sleep;
 						}
-						if (pdialog->alleSpielerLoeschen() == false)
+						if (pdialog->alleSpielerLoeschen() == false)	
 						{
 							std::cerr << "Spieler konnten nicht geloescht werden!" << std::endl;
 							sleep;
@@ -188,10 +247,7 @@ void CDialog::spielerMenue(int& auswahl)
 	} 
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//							Neuen Spieler anlegen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// neuen Spieler anlegen
 void CDialog::neuerSpieler(int& auswahl)	
 {
 	std::string name;
@@ -231,10 +287,7 @@ void CDialog::neuerSpieler(int& auswahl)
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					Einzelner Spieler wird nach Auswahl gelöscht
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Einzelner Spieler wird nach Auswahl gelöscht
 void CDialog::spielerLoeschen()		
 {
 	std::string eingabe;
@@ -278,10 +331,7 @@ void CDialog::spielerLoeschen()
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//					 Bildschirm-Ausgabe für alle Spieler
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Bildschirm-Ausgabe für alle Spieler
 void CDialog::alleSpielerAusgeben() const		
 {
 	int zaehler = 1;
@@ -296,14 +346,10 @@ void CDialog::alleSpielerAusgeben() const
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//							Speicherung Abfrage
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Speicherung Abfrage
 void CDialog::frageSpeichern()
 {
-	std::string eingabe;
-	
+	std::string eingabe;	
 	do
 	{
 		std::cout << "Wollen Sie speichern? (j/n)" << std::endl;
@@ -313,22 +359,17 @@ void CDialog::frageSpeichern()
 		{
 			pdialog->lokalSpeichern();					// Spiel wird gespeichert 
 			pdialog->alleSpielerLoeschen();				// alle Spieler werden gelöscht
-			pdialog->resetAnzSpieler();
 			return;
 		}
 		if (eingabe[0] == 'n')
 		{
-			pdialog->alleSpielerLoeschen();
-			pdialog->resetAnzSpieler();
+			pdialog->alleSpielerLoeschen();				// alle Spieler werden gelöscht
 			return;
 		}
 	} while (eingabe[0] != 'j' || eingabe[0] != 'n');
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//								Spielen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Spielen
 void CDialog::spielenDialog()				
 {
 	std::string eingabe;
@@ -360,8 +401,8 @@ void CDialog::spielenDialog()
 					std::cout << "Du hast das Spiel mit ( " << pdialog->getSpieler().at(zaehler)->getKombi().find(19)->second.second << " ) Punkten abgeschlossen! " << std::endl;
 					std::cout << std::endl;
 					system("Pause");
-					pdialog->datenbankSpeichern();
-					pdialog->alleSpielerLoeschen();
+					pdialog->datenbankSpeichern();		// Es wird in die Datenbank gespeichert 
+					pdialog->alleSpielerLoeschen();		// danach werden alle Spieler gelöscht
 					return;
 				}
 			}
@@ -371,7 +412,7 @@ void CDialog::spielenDialog()
 				{
 					cleanScreen;
 					spielerTabellen(zaehler);
-					gewinner = pdialog->gewinnerErmitteln();
+					gewinner = pdialog->gewinnerErmitteln();		// Gewinner wird in der Funktion berechnet und an gewinner zurück geliefert
 					if (gewinner == -1)
 					{
 						std::cerr << "Der Gewinner konnte nicht uebermittelt werden!" << std::endl;
@@ -380,9 +421,9 @@ void CDialog::spielenDialog()
 					std::cout << std::endl << "Der glueckliche Gewinner ist [ " << pdialog->getSpieler().at(gewinner)->getSpielerName() << " ] mit [ "
 						<< pdialog->getSpieler().at(gewinner)->getKombi().find(19)->second.second << " ] Punkten!" << std::endl;
 					std::cout << std::endl;
-
-					pdialog->datenbankSpeichern();
-					pdialog->alleSpielerLoeschen();
+					system("Pause");
+					pdialog->datenbankSpeichern();		// Es wird in die Datenbank gespeichert
+					pdialog->alleSpielerLoeschen();		// danach werden alle Spieler gelöscht
 					return;
 				}
 			}
@@ -390,10 +431,7 @@ void CDialog::spielenDialog()
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//								Würfel - Menü
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Würfel - Menü
 bool CDialog::wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie)			
 {
 	std::string eingabe;
@@ -420,7 +458,7 @@ bool CDialog::wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie)
 		std::cout << "[1] Wuerfeln! " << std::endl;	
 		bool vergleich = pdialog->vergleicheCounter();
 
-		if (vergleich == true)
+		if (vergleich == true)			// Spiel kann erst beendet werden, wenn wieder der erste Spieler an der Reihe ist
 		{
 			std::cout << "[2] Spiel Beenden" << std::endl;
 		}			
@@ -436,17 +474,17 @@ bool CDialog::wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie)
 			switch (stoi(eingabe))
 			{
 			case 1:
-				pdialog->spielerWuerfeln();
+				pdialog->spielerWuerfeln();				// Spieler würfelt
 				do
 				{
-					aktiv = wuerfelAuswahl(zaehler);							// solange der Spieler nicht 3 Spielzüge hatte, wird die Schleife nicht verlassen
+					aktiv = wuerfelAuswahl(zaehler);	// solange der Spieler nicht 3 Spielzüge hatte, wird die Schleife nicht verlassen
 
 				} while (aktiv != false);
 				return aktiv;
 			case 2:		
 				if (vergleich == true)
 				{
-					frageSpeichern();												// Frage ob gespeichert werden soll nach Beenden Auswahl
+					frageSpeichern();					// Frage ob gespeichert werden soll nach Beenden Auswahl
 					return aktiv;
 				}
 			default:
@@ -457,10 +495,7 @@ bool CDialog::wuerfelMenue(size_t& zaehler, std::vector<CSpieler*> meineKopie)
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//								Würfel - Auswahl-Menü
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Würfel - Auswahl-Menü
 bool CDialog::wuerfelAuswahl(size_t& zaehler)
 {
 	size_t position = 0;
@@ -539,10 +574,7 @@ bool CDialog::wuerfelAuswahl(size_t& zaehler)
 	return aktiv;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						Kombinations Auswahl-Menü
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Kombinations Auswahl-Menü
 void CDialog::kombinationsAuswahl(size_t& zaehler)
 {
 	std::string eingabe;
@@ -551,10 +583,10 @@ void CDialog::kombinationsAuswahl(size_t& zaehler)
 
 	for (;;)
 	{
-		kombination.clear();
-		kombination = pdialog->kombinationen();	
+		kombination.clear();						// Vector wird geleert
+		kombination = pdialog->kombinationen();		// mögliche Kombinationen 
 
-		kombination = pdialog->getSpieler().at(zaehler)->pruefenEintragVorhanden(kombination);
+		kombination = pdialog->getSpieler().at(zaehler)->pruefenEintragVorhanden(kombination);		// prüfen ob die mögliche Kombination bereits eingetragen wurden
 
 		int zaehlerPos = 1;
 
@@ -610,20 +642,17 @@ void CDialog::kombinationsAuswahl(size_t& zaehler)
 			}
 			kombination.erase(kombination.begin() + 1, kombination.end());		// restliche Auflistung wird gelöscht	
 
-			if (kombination.at(0).second != 0)
+			if (kombination.at(0).second != 0)									// wenn die kombination an der Stelle 0 der zweite wert nicht 0 ist
 			{
-				pdialog->getSpieler().at(zaehler)->kombinationSpeichern(kombination);
+				pdialog->getSpieler().at(zaehler)->kombinationSpeichern(kombination);	// dann wird die kombination gespeichert
 			}
-			pdialog->getSpieler().at(zaehler)->tabelleSpielerGesamt();			
+			pdialog->getSpieler().at(zaehler)->tabelleSpielerGesamt();					// Punkte Tabelle wird neu berechnet
 			return;
 		}
 	}
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//						String zerlegen (in einzelne Buchstaben)
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// String zerlegen (in einzelne Buchstaben)
 std::string CDialog::zerlegeStringPositionsAuswahl(std::string& eingabe, size_t& index)
 {
 	std::string buchstabe;	
@@ -632,10 +661,7 @@ std::string CDialog::zerlegeStringPositionsAuswahl(std::string& eingabe, size_t&
 	return buchstabe;		
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//		String-Check (ob alle eingegebenen Zeichen ausschließlich Zahlen sind)
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// String-Check (ob alle eingegebenen Zeichen ausschließlich Zahlen sind)
 bool CDialog::checkStringPositionsAuswahl(std::string& eingabe)
 {
 	int zahl = 0;
@@ -667,10 +693,7 @@ bool CDialog::checkStringPositionsAuswahl(std::string& eingabe)
 	return false;
 }
 
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//								Spieler Tabellen
-//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-
+// Spieler Tabellen (Iterations Schleifen für alle Spieler)
 void CDialog::spielerTabellen(size_t& zaehlerValue)
 {
 	size_t zaehler = 0;
@@ -1036,4 +1059,43 @@ void CDialog::spielerTabellen(size_t& zaehlerValue)
 		std::cout << "#--------------------------------#  "; 
 	}
 	std::cout << std::endl;
+}
+
+// Spielanleitung
+const void CDialog::spielanleitung() const
+{
+	cleanScreen;
+	// Spielanleitung
+	std::cout << "------------------- Kniffel Spielanleitung -------------------" << std::endl << std::endl;
+	std::cout << "Ziel des Spiels: " << std::endl;
+	std::cout << "Das Ziel des Kniffel-Spiels ist es, in 13 Runden eine moeglichst hohe Punktzahl zu erreichen." << std::endl << std::endl;
+	std::cout << "Spielregeln: " << std::endl;
+	std::cout << " - In jeder Runde hat der Spieler drei Wuerfe." << std::endl;
+	std::cout << " - Nach jedem Wurf kann der Spieler entscheiden, welche Wuerfel er behalten und welche er erneut werfen moechte." << std::endl;
+	std::cout << " - Nach dem dritten Wurf muss der Spieler eine Kategorie auswaehlen und die Punktzahl dafuer notieren." << std::endl;
+	std::cout << " - Es gibt insgesamt 13 Kategorien, die jeweils nur einmal genutzt werden koennen." << std::endl << std::endl;
+	std::cout << "Punktevergabe: " << std::endl << std::endl;
+	std::cout << " - Fuer jede Kategorie gibt es eine unterschiedliche Anzahl an Punkten." << std::endl;
+	std::cout << " - In einigen Kategorien erhält der Spieler eine fixe Punktzahl, in anderen hängt die Punktzahl von den gewuerfelten Augenzahlen ab." << std::endl << std::endl;
+	std::cout << "Kategorien: " << std::endl << std::endl;
+	std::cout << "1. Einser bis Sechser: " << std::endl;
+	std::cout << "Hier wird die Summe der gewürfelten Augenzahlen der entsprechenden Kategorie notiert." << std::endl << std::endl;
+	std::cout << "2. Bonus: " << std::endl;
+	std::cout << "Wenn die Summe der Einser bis Sechser 63 oder mehr beträgt, erhält der Spieler einen Bonus von 35 Punkten." << std::endl << std::endl;
+	std::cout << "3. Dreierpasch: " << std::endl;
+	std::cout << "Hier wird die Summe aller Wuerfel notiert, wenn mindestens drei Wuerfel die gleiche Augenzahl haben." << std::endl << std::endl;
+	std::cout << "4. Viererpasch: " << std::endl;
+	std::cout << "Hier wird die Summe aller Wuerfel notiert, wenn mindestens vier Wuerfel die gleiche Augenzahl haben." << std::endl << std::endl;
+	std::cout << "5. Full House: " << std::endl;
+	std::cout << "Hier erhaelt der Spieler 25 Punkte, wenn drei Wuerfel die gleiche Augenzahl haben und die anderen beiden Wuerfel ebenfalls die gleiche Augenzahl haben." << std::endl << std::endl;
+	std::cout << "6. Kleine Strasse: " << std::endl;
+	std::cout << "Hier erhaelt der Spieler 30 Punkte, wenn vier aufeinanderfolgende Augenzahlen gewuerfelt werden." << std::endl << std::endl;
+	std::cout << "7. Grosse Strasse: " << std::endl;
+	std::cout << "Hier erhaelt der Spieler 40 Punkte, wenn fuenf aufeinanderfolgende Augenzahlen gewuerfelt werden." << std::endl << std::endl;
+	std::cout << "8. Kniffel: " << std::endl;
+	std::cout << "Hier erhaelt der Spieler 50 Punkte, wenn alle Wuerfel die gleiche Augenzahl haben." << std::endl << std::endl;
+	std::cout << "9. Chance: " << std::endl;
+	std::cout << "Hier kann der Spieler jede beliebige Kombination der gewuerfelten Augenzahlen notieren." << std::endl << std::endl;
+	std::cout << "----------------------------------------------------------------" << std::endl << std::endl;
+	system("Pause");
 }
